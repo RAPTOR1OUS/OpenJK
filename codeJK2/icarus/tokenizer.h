@@ -30,8 +30,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <map>
 
-using namespace std;
-
 typedef unsigned char byte;
 typedef unsigned short word;
 
@@ -187,7 +185,7 @@ public:
 
 protected:
 	void Init(long value);
-	
+
 	long			m_value;
 };
 
@@ -283,7 +281,7 @@ protected:
 	char*			m_symbolName;
 };
 
-typedef map<const char *, CSymbol*, lessstr> symbolmap_t;
+typedef std::map<const char *, CSymbol*, lessstr> symbolmap_t;
 
 class CDirectiveSymbol : public CSymbol
 {
@@ -439,7 +437,7 @@ public:
 	const char *LookupToken(int tokenID, keywordArray_t* theTable = NULL);
 
 protected:
-	void SetError(int theError, const char *errString); 
+	void SetError(int theError, const char *errString);
 	virtual void Init(unsigned dwFlags = 0);
 	CToken* FetchToken();
 	bool AddDefineSymbol(CDirectiveSymbol* definesymbol);

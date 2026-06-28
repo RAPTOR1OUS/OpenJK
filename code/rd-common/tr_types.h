@@ -74,6 +74,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #define	RF_DISTORTION	   0x400000	//area distortion effect -rww
 
+#define RF_FORCE_ENT_ALPHA	0x800000 // override shader alpha settings
+
 // refdef flags
 #define RDF_NOWORLDMODEL	1		// used for player configuration screen
 #define RDF_HYPERSPACE		4		// teleportation effect
@@ -103,7 +105,7 @@ typedef struct poly_s {
 	polyVert_t			*verts;
 } poly_t;
 
-typedef enum 
+typedef enum
 {
 	RT_MODEL,
 	RT_POLY,
@@ -240,6 +242,8 @@ typedef struct glconfig_s {
 	int						vidWidth, vidHeight;
 
 	int						displayFrequency;
+
+	qboolean				doStencilShadowsInOneDrawcall;
 
 	// synonymous with "does rendering consume the entire screen?", therefore
 	// a Voodoo or Voodoo2 will have this set to TRUE, as will a Win32 ICD that

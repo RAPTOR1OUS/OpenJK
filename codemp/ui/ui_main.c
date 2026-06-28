@@ -44,6 +44,9 @@ USER INTERFACE MAIN
 #include "game/bg_saga.h"
 #include "ui_shared.h"
 
+NORETURN_PTR void (*Com_Error)( int level, const char *error, ... );
+void (*Com_Printf)( const char *msg, ... );
+
 extern void UI_SaberAttachToChar( itemDef_t *item );
 
 const char *forcepowerDesc[NUM_FORCE_POWERS] =
@@ -322,13 +325,12 @@ int UI_ParseAnimationFile(const char *filename, animation_t *animset, qboolean i
 	if (!UIPAFtextLoaded || !isHumanoid)
 	{ //rww - We are always using the same animation config now. So only load it once.
 		len = trap->FS_Open( filename, &f, FS_READ );
-		if ( (len <= 0) || (len >= sizeof( UIPAFtext ) - 1) )
-		{
-			if (len > 0)
-			{
-				Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", filename);
-			}
+		if ( !f ) {
 			return -1;
+		}
+		if ( len >= sizeof( UIPAFtext ) - 1 ) {
+			trap->FS_Close( f );
+			Com_Error(ERR_DROP, "%s exceeds the allowed ui-side animation buffer!", filename);
 		}
 
 		trap->FS_Read( UIPAFtext, len, f );
@@ -501,7 +503,7 @@ static const char *skillLevels[] = {
 };
 static const size_t numSkillLevels = ARRAY_LEN( skillLevels );
 
-static const char *gameTypes[] = {
+static const char *gameTypes[GT_MAX_GAME_TYPE] = {
 	"FFA",
 	"Holocron",
 	"JediMaster",
@@ -6503,7 +6505,6 @@ static void UI_RunMenuScript(char **args)
 		{
 			UI_UpdateCharacterSkin();
 		}
-#if 0
 		else if (Q_stricmp(name, "setui_dualforcepower") == 0)
 		{
 			int forcePowerDisable = trap->Cvar_VariableValue("g_forcePowerDisable");
@@ -6538,7 +6539,7 @@ static void UI_RunMenuScript(char **args)
 		}
 		else if (Q_stricmp(name, "dualForcePowers") == 0)
 		{
-			int	dualforcePower,i, forcePowerDisable;
+			int	dualforcePower,i, forcePowerDisable=0;
 			dualforcePower = trap->Cvar_VariableValue("ui_dualforcepower");
 
 			if (dualforcePower==0)	// All force powers
@@ -6596,8 +6597,8 @@ static void UI_RunMenuScript(char **args)
 			int	weaponDisable,i;
 			const char *cvarString;
 
-			if (uiInfo.gameTypes[ui_netGameType.integer].gtEnum == GT_DUEL ||
-				uiInfo.gameTypes[ui_netGameType.integer].gtEnum == GT_POWERDUEL)
+			if (uiInfo.gameTypes[ui_netGametype.integer].gtEnum == GT_DUEL ||
+				uiInfo.gameTypes[ui_netGametype.integer].gtEnum == GT_POWERDUEL)
 			{
 				cvarString = "g_duelWeaponDisable";
 			}
@@ -6622,7 +6623,6 @@ static void UI_RunMenuScript(char **args)
 				trap->Cvar_Set(cvarString, va("%i",weaponDisable));
 			}
 		}
-#endif
 		// If this is siege, change all the bots to humans, because we faked it earlier
 		//  swapping humans for bots on the menu
 		else if (Q_stricmp(name, "setSiegeNoBots") == 0)
@@ -6828,7 +6828,7 @@ static void UI_RunMenuScript(char **args)
 						Menu_SetItemBackground(menu, item->window.name, string2);
 
 						// Re-enable this button
-						Menu_ItemDisable(menu,(char *) item->window.name, qfalse);
+						Menu_ItemDisable(menu, item->window.name, qfalse);
 					}
 
 					// Set the new item to the given background
@@ -6845,7 +6845,7 @@ static void UI_RunMenuScript(char **args)
 								trap->Cvar_VariableStringBuffer( cvarLitArg, string, sizeof(string) );
 								Menu_SetItemBackground(menu, item->window.name, string);
 								// Disable button
-								Menu_ItemDisable(menu,(char *) item->window.name, qtrue);
+								Menu_ItemDisable(menu, item->window.name, qtrue);
 							}
 						}
 					}
@@ -7125,8 +7125,11 @@ void UI_SetSiegeTeams(void)
 
 	len = trap->FS_Open(levelname, &f, FS_READ);
 
-	if (!f || len >= MAX_SIEGE_INFO_SIZE)
-	{
+	if (!f) {
+		return;
+	}
+	if (len >= MAX_SIEGE_INFO_SIZE) {
+		trap->FS_Close( f );
 		return;
 	}
 
@@ -7409,7 +7412,6 @@ static void UI_BuildServerDisplayList(int force) {
 	int i, count, clients, maxClients, ping, game, len, passw/*, visible*/;
 	char info[MAX_STRING_CHARS];
 //	qboolean startRefresh = qtrue; TTimo: unused
-	static int numinvisible;
 	int	lanSource;
 
 	if (!(force || uiInfo.uiDC.realTime > uiInfo.serverStatus.nextDisplayRefresh)) {
@@ -7435,7 +7437,6 @@ static void UI_BuildServerDisplayList(int force) {
 	lanSource = UI_SourceForLAN();
 
 	if (force) {
-		numinvisible = 0;
 		// clear number of displayed servers
 		uiInfo.serverStatus.numDisplayServers = 0;
 		uiInfo.serverStatus.numPlayersOnServers = 0;
@@ -7530,7 +7531,6 @@ static void UI_BuildServerDisplayList(int force) {
 			// done with this server
 			if (ping > 0) {
 				trap->LAN_MarkServerVisible(lanSource, i, qfalse);
-				numinvisible++;
 			}
 		}
 	}
@@ -7700,7 +7700,7 @@ UI_BuildFindPlayerList
 ==================
 */
 static void UI_BuildFindPlayerList(qboolean force) {
-	static int numFound, numTimeOuts;
+	static int numFound;
 	int i, j, resend;
 	serverStatusInfo_t info;
 	char name[MAX_NAME_LENGTH+2];
@@ -7740,7 +7740,6 @@ static void UI_BuildFindPlayerList(qboolean force) {
 	//					sizeof(uiInfo.foundPlayerServerNames[uiInfo.numFoundPlayerServers-1]),
 	//						"searching %d...", uiInfo.pendingServerStatus.num);
 		numFound = 0;
-		numTimeOuts++;
 	}
 	for (i = 0; i < MAX_SERVERSTATUSREQUESTS; i++) {
 		// if this pending server is valid
@@ -7791,7 +7790,7 @@ static void UI_BuildFindPlayerList(qboolean force) {
 		if (!uiInfo.pendingServerStatus.server[i].valid ||
 			uiInfo.pendingServerStatus.server[i].startTime < uiInfo.uiDC.realTime - ui_serverStatusTimeOut.integer) {
 			if (uiInfo.pendingServerStatus.server[i].valid) {
-				numTimeOuts++;
+				// timed out
 			}
 			// reset server status request for this address
 			UI_GetServerStatusInfo( uiInfo.pendingServerStatus.server[i].adrstr, NULL );
@@ -7827,14 +7826,17 @@ static void UI_BuildFindPlayerList(qboolean force) {
 		uiInfo.nextFindPlayerRefresh = uiInfo.uiDC.realTime + 25;
 	}
 	else {
+		trap->SE_GetStringTextString("MENUS_SERVERS_FOUNDWITH", holdSPString, sizeof(holdSPString));
 		// add a line that shows the number of servers found
 		if (!uiInfo.numFoundPlayerServers)
 		{
-			Com_sprintf(uiInfo.foundPlayerServerNames[uiInfo.numFoundPlayerServers-1], sizeof(uiInfo.foundPlayerServerAddresses[0]), "no servers found");
+			trap->Cvar_Set( "ui_playerServersFound", va(	holdSPString,
+														0,
+														"s",
+														uiInfo.findPlayerName) );
 		}
 		else
 		{
-			trap->SE_GetStringTextString("MENUS_SERVERS_FOUNDWITH", holdSPString, sizeof(holdSPString));
 			trap->Cvar_Set( "ui_playerServersFound", va(	holdSPString,
 														uiInfo.numFoundPlayerServers-1,
 														uiInfo.numFoundPlayerServers == 2 ? "":"s",
@@ -9579,9 +9581,9 @@ static qboolean UI_ParseColorData(char* buf, playerSpeciesInfo_t *species,char*	
 			species->ColorMax *= 2;
 			species->Color = (playerColor_t *)realloc(species->Color, species->ColorMax * sizeof(playerColor_t));
 		}
-		
+
 		memset(&species->Color[species->ColorCount], 0, sizeof(playerColor_t));
-		
+
 		Q_strncpyz( species->Color[species->ColorCount].shader, token, MAX_QPATH );
 
 		token = COM_ParseExt( &p, qtrue );	//looking for action block {
@@ -9589,7 +9591,7 @@ static qboolean UI_ParseColorData(char* buf, playerSpeciesInfo_t *species,char*	
 		{
 			return qfalse;
 		}
-		
+
 		token = COM_ParseExt( &p, qtrue );	//looking for action commands
 		while (token[0] != '}')
 		{
@@ -9618,7 +9620,7 @@ static void UI_FreeSpecies( playerSpeciesInfo_t *species )
 void UI_FreeAllSpecies( void )
 {
 	int i;
-	
+
 	for (i = 0; i < uiInfo.playerSpeciesCount; i++)
 	{
 		UI_FreeSpecies(&uiInfo.playerSpecies[i]);
@@ -9633,12 +9635,27 @@ UI_BuildPlayerModel_List
 */
 static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 {
+	static const size_t DIR_LIST_SIZE = 16384;
+
 	int		numdirs;
-	char	dirlist[2048];
+	size_t	dirListSize = DIR_LIST_SIZE;
+	char	stackDirList[8192];
+	char	*dirlist;
 	char*	dirptr;
 	int		dirlen;
 	int		i;
 	int		j;
+
+	dirlist = malloc(DIR_LIST_SIZE);
+	if ( !dirlist )
+	{
+		Com_Printf(S_COLOR_YELLOW "WARNING: Failed to allocate %u bytes of memory for player model "
+			"directory list. Using stack allocated buffer of %u bytes instead.",
+			DIR_LIST_SIZE, sizeof(stackDirList));
+
+		dirlist = stackDirList;
+		dirListSize = sizeof(stackDirList);
+	}
 
 	uiInfo.playerSpeciesCount = 0;
 	uiInfo.playerSpeciesIndex = 0;
@@ -9646,15 +9663,14 @@ static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 	uiInfo.playerSpecies = (playerSpeciesInfo_t *)malloc(uiInfo.playerSpeciesMax * sizeof(playerSpeciesInfo_t));
 
 	// iterate directory of all player models
-	numdirs = trap->FS_GetFileList("models/players", "/", dirlist, 2048 );
+	numdirs = trap->FS_GetFileList("models/players", "/", dirlist, dirListSize );
 	dirptr  = dirlist;
 	for (i=0; i<numdirs; i++,dirptr+=dirlen+1)
 	{
-		char	filelist[2048];
 		char*	fileptr;
 		int		filelen;
 		int f = 0;
-		char fpath[2048];
+		char fpath[MAX_QPATH];
 
 		dirlen = strlen(dirptr);
 
@@ -9671,11 +9687,12 @@ static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 		if (!strcmp(dirptr,".") || !strcmp(dirptr,".."))
 			continue;
 
-		Com_sprintf(fpath, 2048, "models/players/%s/PlayerChoice.txt", dirptr);
+		Com_sprintf(fpath, sizeof(fpath), "models/players/%s/PlayerChoice.txt", dirptr);
 		filelen = trap->FS_Open(fpath, &f, FS_READ);
 
 		if (f)
 		{
+			char	filelist[2048];
 			playerSpeciesInfo_t *species;
 			char                 skinname[64];
 			int                  numfiles;
@@ -9685,6 +9702,7 @@ static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 			buffer = malloc(filelen + 1);
 			if(!buffer)
 			{
+				trap->FS_Close( f );
 				Com_Error(ERR_FATAL, "Could not allocate buffer to read %s", fpath);
 			}
 
@@ -9707,18 +9725,18 @@ static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 			{
 				Com_Printf(S_COLOR_RED"UI_BuildPlayerModel_List: Errors parsing '%s'\n", fpath);
 			}
-			
+
 			species->SkinHeadMax = 8;
 			species->SkinTorsoMax = 8;
 			species->SkinLegMax = 8;
-			
+
 			species->SkinHead = (skinName_t *)malloc(species->SkinHeadMax * sizeof(skinName_t));
 			species->SkinTorso = (skinName_t *)malloc(species->SkinTorsoMax * sizeof(skinName_t));
 			species->SkinLeg = (skinName_t *)malloc(species->SkinLegMax * sizeof(skinName_t));
 
 			free(buffer);
 
-			numfiles = trap->FS_GetFileList( va("models/players/%s",dirptr), ".skin", filelist, 2048 );
+			numfiles = trap->FS_GetFileList( va("models/players/%s",dirptr), ".skin", filelist, sizeof(filelist) );
 			fileptr  = filelist;
 			for (j=0; j<numfiles; j++,fileptr+=filelen+1)
 			{
@@ -9786,6 +9804,11 @@ static void UI_BuildPlayerModel_List( qboolean inGameLoad )
 			}
 		}
 	}
+
+	if ( dirlist != stackDirList )
+	{
+		free(dirlist);
+	}
 }
 
 static qhandle_t UI_RegisterShaderNoMip( const char *name ) {
@@ -9808,6 +9831,8 @@ UI_Init
 */
 void UI_Init( qboolean inGameLoad ) {
 	const char *menuSet;
+
+	Rand_Init( trap->Milliseconds() );
 
 	// Get the list of possible languages
 	uiInfo.languageCount = trap->SE_GetNumLanguages();	// this does a dir scan, so use carefully
@@ -9898,6 +9923,7 @@ void UI_Init( qboolean inGameLoad ) {
 	uiInfo.uiDC.stopCinematic					= &UI_StopCinematic;
 	uiInfo.uiDC.drawCinematic					= &UI_DrawCinematic;
 	uiInfo.uiDC.runCinematicFrame				= &UI_RunCinematicFrame;
+	uiInfo.uiDC.ext.Font_StrLenPixels			= trap->ext.R_Font_StrLenPixels;
 
 	Init_Display(&uiInfo.uiDC);
 

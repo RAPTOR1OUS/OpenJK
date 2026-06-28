@@ -1179,7 +1179,7 @@ static void CG_OffsetFirstPersonView( qboolean firstPersonSaber ) {
 		// add view height
 		if ( cg.snap->ps.viewEntity > 0 && cg.snap->ps.viewEntity < ENTITYNUM_WORLD )
 		{
-			if ( &g_entities[cg.snap->ps.viewEntity] &&
+			if ( g_entities[cg.snap->ps.viewEntity].inuse &&
 				g_entities[cg.snap->ps.viewEntity].client &&
 				g_entities[cg.snap->ps.viewEntity].client->ps.viewheight )
 			{
@@ -1359,7 +1359,7 @@ static qboolean	CG_CalcFov( void ) {
 		&& (!cg.renderingThirdPerson || g_entities[cg.snap->ps.viewEntity].e_DieFunc == dieF_camera_die) )
 	{
 		// if in entity camera view, use a special FOV
-		if ( &g_entities[cg.snap->ps.viewEntity] &&
+		if ( g_entities[cg.snap->ps.viewEntity].inuse &&
 			g_entities[cg.snap->ps.viewEntity].NPC )
 		{//FIXME: looks bad when take over a jedi... but never really do that, do we?
 			fov_x = g_entities[cg.snap->ps.viewEntity].NPC->stats.hfov;
@@ -2037,7 +2037,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	//FIXME: should really send forcePowersActive over network onto cg.snap->ps...
 	const int fpActive = cg_entities[0].gent->client->ps.forcePowersActive;
 	const bool matrixMode = !!(fpActive & ((1 << FP_SPEED) | (1 << FP_RAGE)));
-	float speed = cg.refdef.fov_y / 75.0 * (matrixMode ? 1.0f : cg_timescale.value);
+	float speed = cg.refdef.fov_y / 75.0 * (matrixMode ? 1.0f : Q_min(cg_timescale.value, 1.0f));
 
 //FIXME: junk code, BUG:168
 
@@ -2053,7 +2053,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 
 	float mPitchOverride = 0.0f;
 	float mYawOverride = 0.0f;
-	if ( cg.snap->ps.clientNum == 0 )
+	if ( cg.snap->ps.clientNum == 0 && cg_scaleVehicleSensitivity.integer )
 	{//pointless check, but..
 		if ( cg_entities[0].gent->s.eFlags & EF_LOCKED_TO_WEAPON )
 		{
@@ -2087,11 +2087,12 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		cg.zoomMode = 0;
 	}
 	// decide on third person view
-	cg.renderingThirdPerson = cg_thirdPerson.integer
-								|| (cg.snap->ps.stats[STAT_HEALTH] <= 0)
-								|| (cg.snap->ps.eFlags&EF_HELD_BY_SAND_CREATURE)
-								|| ((g_entities[0].client&&g_entities[0].client->NPC_class==CLASS_ATST)
-								|| (cg.snap->ps.weapon == WP_SABER || cg.snap->ps.weapon == WP_MELEE) );
+	cg.renderingThirdPerson = (qboolean)(
+		cg_thirdPerson.integer
+		|| (cg.snap->ps.stats[STAT_HEALTH] <= 0)
+		|| (cg.snap->ps.eFlags&EF_HELD_BY_SAND_CREATURE)
+		|| ((g_entities[0].client&&g_entities[0].client->NPC_class==CLASS_ATST)
+		|| (cg.snap->ps.weapon == WP_SABER || cg.snap->ps.weapon == WP_MELEE) ));
 
 	if ( cg.zoomMode )
 	{
@@ -2140,7 +2141,6 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	if ( !cg.hyperspace ) {
 		CG_AddPacketEntities(qfalse);			// adter calcViewValues, so predicted player state is correct
 		CG_AddMarks();
-		CG_AddLocalEntities();
 		CG_DrawMiscEnts();
 	}
 
@@ -2208,6 +2208,10 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	// finish up the rest of the refdef
 	if ( cg.testModelEntity.hModel ) {
 		CG_AddTestModel();
+	}
+
+	if ( !cg.hyperspace ) {
+		CG_AddLocalEntities();
 	}
 
 	memcpy( cg.refdef.areamask, cg.snap->areamask, sizeof( cg.refdef.areamask ) );

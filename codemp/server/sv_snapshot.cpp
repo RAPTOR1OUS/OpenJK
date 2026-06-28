@@ -667,6 +667,15 @@ static int SV_RateMsec( client_t *client, int messageSize ) {
 			rate = sv_maxRate->integer;
 		}
 	}
+	if ( sv_minRate->integer ) {
+		if ( sv_minRate->integer < 1000 ) {
+			Cvar_Set( "sv_minRate", "1000" );
+		}
+		if ( sv_minRate->integer > rate ) {
+			rate = sv_minRate->integer;
+		}
+	}
+
 	rateMsec = ( messageSize + HEADER_RATE_BYTES ) * 1000 / ((int) (rate * com_timescale->value));
 
 	return rateMsec;
@@ -721,7 +730,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client ) {
 	// local clients get snapshots every server frame
 	// TTimo - https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=491
 	// added sv_lanForceRate check
-	if ( client->netchan.remoteAddress.type == NA_LOOPBACK || (sv_lanForceRate->integer && Sys_IsLANAddress (client->netchan.remoteAddress)) ) {
+	if ( client->netchan.remoteAddress.type == NA_LOOPBACK || (sv_lanForceRate->integer && Sys_IsLANAddress (&client->netchan.remoteAddress)) ) {
 		client->nextSnapshotTime = svs.time + ((int) (1000.0 / sv_fps->integer * com_timescale->value));
 		return;
 	}

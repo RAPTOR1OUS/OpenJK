@@ -66,7 +66,7 @@ new gamestate_t, potentially several times during an established connection
 
 // the parseEntities array must be large enough to hold PACKET_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server
-// it can be un-deltad from the original 
+// it can be un-deltad from the original
 #define MAX_PARSE_ENTITIES	512
 
 extern int g_console_field_width;
@@ -145,7 +145,7 @@ or just a streaming cinematic.
 */
 
 
-typedef struct {		
+typedef struct {
 	int			lastPacketSentTime;			// for retransmits
 	int			lastPacketTime;
 	char		servername[MAX_OSPATH];		// name of server from original connect
@@ -206,24 +206,46 @@ typedef struct {
 	qhandle_t	charSetShader;
 	qhandle_t	whiteShader;
 	qhandle_t	consoleShader;
+	int			consoleFont;
+
+	// Cursor
+	qboolean	cursorActive;
+	qhandle_t	cursorShader;
+	int			cursorX;
+	int			cursorY;
+
+	// Engine menu
+	int			menuFont;
 } clientStatic_t;
 
 #define	CON_TEXTSIZE	0x30000 //was 32768
 #define	NUM_CON_TIMES	4
 
+typedef union {
+	struct {
+		unsigned char	color;
+		char			character;
+	} f;
+	unsigned short	compare;
+} conChar_t;
+
 typedef struct {
 	qboolean	initialized;
 
-	short	text[CON_TEXTSIZE];
+	conChar_t	text[CON_TEXTSIZE];
 	int		current;		// line where next message will be printed
 	int		x;				// offset in current line for next print
 	int		display;		// bottom of console displays this line
 
 	int 	linewidth;		// characters across screen
+	int		rowwidth;		// timestamp, text and line wrap character
 	int		totallines;		// total lines in console scrollback
 
+	int		charWidth;		// Scaled console character width
+	int		charHeight;		// Scaled console character height
+
 	float	xadjust;		// for wide aspect screens
-	float	yadjust;		
+	float	yadjust;
 
 	float	displayFrac;	// aproaches finalFrac at scr_conspeed
 	float	finalFrac;		// 0.0 to 1.0 lines of console to display
@@ -278,6 +300,8 @@ extern	cvar_t	*m_filter;
 extern	cvar_t	*cl_activeAction;
 
 extern	cvar_t	*cl_consoleKeys;
+extern	cvar_t	*cl_consoleUseScanCode;
+extern	cvar_t	*cl_consoleShiftRequirement;
 
 //=================================================
 
@@ -313,9 +337,6 @@ extern 	kbutton_t 	in_speed;
 void CL_InitInput (void);
 void CL_SendCmd (void);
 void CL_ClearState (void);
-void CL_ReadPackets (void);
-void CL_UpdateHotSwap(void);
-bool CL_ExtendSelectTime(void);
 
 void CL_WritePacket( void );
 void IN_CenterView (void);
@@ -363,7 +384,7 @@ void	SCR_DebugGraph (float value, int color);
 
 int		SCR_GetBigStringWidth( const char *str );	// returns in virtual 640x480 coordinates
 
-void	SCR_FillRect( float x, float y, float width, float height, 
+void	SCR_FillRect( float x, float y, float width, float height,
 					 const float *color );
 void	SCR_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
 void	SCR_DrawNamedPic( float x, float y, float width, float height, const char *picname );

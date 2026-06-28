@@ -139,6 +139,9 @@ int G_GetMapTypeBits(char *type)
 			typeBits |= (1 << GT_TEAM);
 			typeBits |= (1 << GT_JEDIMASTER);
 		}
+		if( strstr( type, "team" ) ) {
+			typeBits |= (1 << GT_TEAM);
+		}
 		if( strstr( type, "holocron" ) ) {
 			typeBits |= (1 << GT_HOLOCRON);
 		}
@@ -451,7 +454,7 @@ void G_AddRandomBot( int team ) {
 			num++;
 		}
 	}
-	num = random() * num;
+	num = Q_flrand(0.0f, 1.0f) * num;
 	for ( n = 0; n < level.bots.num ; n++ ) {
 		value = Info_ValueForKey( level.bots.infos[n], "name" );
 		//

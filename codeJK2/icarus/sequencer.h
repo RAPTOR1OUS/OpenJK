@@ -40,7 +40,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define SQ_COMMON		0x00000000 	//Common one-pass sequence
 #define	SQ_LOOP			0x00000001 	//Looping sequence
 #define SQ_RETAIN		0x00000002 	//Inside a looping sequence list, retain the information
-#define SQ_AFFECT		0x00000004 	//Affect sequence 
+#define SQ_AFFECT		0x00000004 	//Affect sequence
 #define SQ_RUN			0x00000008	//A run block
 #define SQ_PENDING		0x00000010	//Pending use, don't free when flushing the sequences
 #define SQ_CONDITIONAL	0x00000020	//Conditional statement
@@ -82,9 +82,9 @@ class ICARUS_Instance;
 
 class CSequencer
 {
-	typedef	map < int, CSequence * >			sequenceID_m;
-	typedef list < CSequence * >				sequence_l;
-	typedef map < CTaskGroup *, CSequence * >	taskSequence_m;
+	typedef	std::map < int, CSequence * >			sequenceID_m;
+	typedef std::list < CSequence * >				sequence_l;
+	typedef std::map < CTaskGroup *, CSequence * >	taskSequence_m;
 
 public:
 
@@ -164,7 +164,7 @@ protected:
 	CSequence *GetTaskSequence( CTaskGroup *group );
 
 	//Member variables
-	
+
 	ICARUS_Instance		*m_owner;
 	int					m_ownerID;
 
@@ -185,7 +185,7 @@ protected:
 
 	int					m_elseValid;
 	CBlock				*m_elseOwner;
-	vector<bstream_t*>  m_streamsCreated;
+	std::vector<bstream_t*>  m_streamsCreated;
 };
 
 #endif	//__SEQUENCER__

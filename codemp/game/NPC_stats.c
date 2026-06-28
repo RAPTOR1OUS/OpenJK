@@ -151,20 +151,6 @@ extern stringID_table_t FPTable[];
 char	*TeamNames[TEAM_NUM_TEAMS] =
 {
 	"",
-//	"starfleet",
-//	"borg",
-//	"parasite",
-//	"scavengers",
-//	"klingon",
-//	"malon",
-//	"hirogen",
-//	"imperial",
-//	"stasis",
-//	"species8472",
-//	"dreadnought",
-//	"forge",
-//	"disguise",
-//	"player (not valid)"
 	"player",
 	"enemy",
 	"neutral"
@@ -284,16 +270,6 @@ class_t TranslateClassName( const char *name )
 }
 */
 
-/*
-static race_t TranslateRaceName( const char *name )
-{
-	if ( !Q_stricmp( name, "human" ) )
-	{
-		return RACE_HUMAN;
-	}
-	return RACE_NONE;
-}
-*/
 /*
 static rank_t TranslateRankName( const char *name )
 
@@ -2578,7 +2554,7 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 				}
 				//FIXME: need to precache the weapon, too?  (in above func)
 				weap = GetIDForString( WPTable, value );
-				if ( weap >= WP_NONE && weap <= WP_NUM_WEAPONS )///*WP_BLASTER_PISTOL*/WP_SABER ) //?!
+				if ( weap >= WP_NONE && weap < WP_NUM_WEAPONS )///*WP_BLASTER_PISTOL*/WP_SABER ) //?!
 				{
 					NPC->client->ps.weapon = weap;
 					NPC->client->ps.stats[STAT_WEAPONS] |= ( 1 << NPC->client->ps.weapon );
@@ -3615,6 +3591,7 @@ void NPC_LoadParms( void )
 		else
 		{
 			if ( totallen + len >= MAX_NPC_DATA_SIZE ) {
+				trap->FS_Close( f );
 				trap->Error( ERR_DROP, "NPC extensions (*.npc) are too large" );
 			}
 			trap->FS_Read(npcParseBuffer, len, f);

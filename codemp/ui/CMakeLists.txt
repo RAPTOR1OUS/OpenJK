@@ -1,17 +1,17 @@
 #============================================================================
-# Copyright (C) 2013 - 2015, OpenJK contributors
-# 
+# Copyright (C) 2013 - 2018, OpenJK contributors
+#
 # This file is part of the OpenJK source code.
-# 
+#
 # OpenJK is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 #============================================================================
@@ -21,11 +21,16 @@ if(NOT InOpenJK)
 	message(FATAL_ERROR "Use the top-level cmake script!")
 endif(NOT InOpenJK)
 
-set(MPUIIncludeDirectories "${MPDir}")
+set(MPUIIncludeDirectories
+	"${MPDir}"
+	"${SharedDir}"
+	"${GSLIncludeDirectory}"
+	"${CMAKE_BINARY_DIR}/shared"
+	)
 if(WIN32)
 	set(MPUILibraries "odbc32" "odbccp32") # what are these even?
 endif(WIN32)
-set(MPUIDefines ${MPSharedDefines} "_UI")
+set(MPUIDefines ${MPSharedDefines} "UI_BUILD")
 
 set(MPUIGameFiles
 	"${MPDir}/game/bg_misc.c"
@@ -44,17 +49,23 @@ source_group("game" FILES ${MPUIGameFiles})
 set(MPUIFiles ${MPUIFiles} ${MPUIGameFiles})
 
 set(MPUICommonFiles
-	"${MPDir}/qcommon/q_math.c"
 	"${MPDir}/qcommon/q_shared.c"
 	"${MPDir}/qcommon/disablewarnings.h"
 	"${MPDir}/qcommon/game_version.h"
 	"${MPDir}/qcommon/q_shared.h"
-	"${MPDir}/qcommon/q_platform.h"
 	"${MPDir}/qcommon/qfiles.h"
 	"${MPDir}/qcommon/tags.h"
+
+	${SharedCommonFiles}
 	)
 source_group("common" FILES ${MPUICommonFiles})
 set(MPUIFiles ${MPUIFiles} ${MPUICommonFiles})
+
+set(MPUICommonSafeFiles
+	${SharedCommonSafeFiles}
+	)
+source_group("common/safe" FILES ${MPUICommonSafeFiles})
+set(MPUIFiles ${MPUIFiles} ${MPUICommonSafeFiles})
 
 set(MPUIUIFiles
 	"${MPDir}/ui/ui_atoms.c"
@@ -103,14 +114,12 @@ elseif(WIN32)
 		RUNTIME
 		DESTINATION "${JKAInstallDir}/OpenJK"
 		COMPONENT ${JKAMPCoreComponent})
-	if (WIN64)
-		# Don't do this on 32-bit Windows to avoid overwriting
-		# vanilla JKA's DLLs
-		install(TARGETS ${MPUI}
-			RUNTIME
-			DESTINATION "${JKAInstallDir}/base"
-			COMPONENT ${JKAMPCoreComponent})
-	endif()
+
+	# Use OpenJK modules as default
+	install(TARGETS ${MPUI}
+		RUNTIME
+		DESTINATION "${JKAInstallDir}/base"
+		COMPONENT ${JKAMPCoreComponent})
 else()
 	install(TARGETS ${MPUI}
 		LIBRARY
@@ -123,6 +132,10 @@ else()
 endif()
 
 set_target_properties(${MPUI} PROPERTIES COMPILE_DEFINITIONS "${MPUIDefines}")
+
+# Hide symbols not explicitly marked public.
+set_property(TARGET ${MPUI} APPEND PROPERTY COMPILE_OPTIONS ${OPENJK_VISIBILITY_FLAGS})
+
 set_target_properties(${MPUI} PROPERTIES INCLUDE_DIRECTORIES "${MPUIIncludeDirectories}")
 set_target_properties(${MPUI} PROPERTIES PROJECT_LABEL "MP UI Library")
 # no libraries used

@@ -188,7 +188,7 @@ void RB_ShadowTessEnd( void )
 			backEnd.currentEntity->directedLight[1] ||
 			backEnd.currentEntity->directedLight[2]))
 	{ //an ent that has its light set for it
-		RB_DoShadowTessEnd(NULL); 
+		RB_DoShadowTessEnd(NULL);
 		return;
 	}
 
@@ -209,7 +209,7 @@ void RB_ShadowTessEnd( void )
 
 			RB_DoShadowTessEnd(dl->transformed);
 		}
-        
+
 		i++;
 	}
 	*/
@@ -350,28 +350,24 @@ void RB_DoShadowTessEnd( vec3_t lightPos )
 	qglDepthFunc(GL_LESS);
 
 	//now using the Carmack Reverse<tm> -rww
-	if ( backEnd.viewParms.isMirror ) {
-		//qglCullFace( GL_BACK );
-		GL_Cull(CT_BACK_SIDED);
-		qglStencilOp( GL_KEEP, GL_INCR, GL_KEEP );
+	if (glConfig.doStencilShadowsInOneDrawcall)
+	{
+		GL_Cull(CT_TWO_SIDED);
+		qglStencilOpSeparate(GL_FRONT, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+		qglStencilOpSeparate(GL_BACK, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
 		R_RenderShadowEdges();
-
-		//qglCullFace( GL_FRONT );
+		qglDisable(GL_STENCIL_TEST);
+	}
+	else
+	{
 		GL_Cull(CT_FRONT_SIDED);
-		qglStencilOp( GL_KEEP, GL_DECR, GL_KEEP );
-
-		R_RenderShadowEdges();
-	} else {
-		//qglCullFace( GL_FRONT );
-		GL_Cull(CT_FRONT_SIDED);
-		qglStencilOp( GL_KEEP, GL_INCR, GL_KEEP );
+		qglStencilOp(GL_KEEP, GL_INCR, GL_KEEP);
 
 		R_RenderShadowEdges();
 
-		//qglCullFace( GL_BACK );
 		GL_Cull(CT_BACK_SIDED);
-		qglStencilOp( GL_KEEP, GL_DECR, GL_KEEP );
+		qglStencilOp(GL_KEEP, GL_DECR, GL_KEEP);
 
 		R_RenderShadowEdges();
 	}
@@ -541,7 +537,7 @@ void RB_CaptureScreenImage(void)
 	static byte *tmp = NULL;
 	if (!tmp)
 	{
-		tmp = (byte *)Z_Malloc((sizeof(byte)*4)*(glConfig.vidWidth*glConfig.vidHeight), TAG_ICARUS, qtrue);
+		tmp = (byte *)R_Malloc((sizeof(byte)*4)*(glConfig.vidWidth*glConfig.vidHeight), TAG_ICARUS, qtrue);
 	}
 	qglReadPixels(0, 0, glConfig.vidWidth, glConfig.vidHeight, GL_RGBA, GL_UNSIGNED_BYTE, tmp);
 	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, tmp);

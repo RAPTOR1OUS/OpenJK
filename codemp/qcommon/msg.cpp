@@ -139,9 +139,7 @@ void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 
 	oldsize += bits;
 
-	// this isn't an exact overflow check, but close enough
-	if ( msg->maxsize - msg->cursize < 4 ) {
-		msg->overflowed = qtrue;
+	if ( msg->overflowed ) {
 		return;
 	}
 
@@ -175,6 +173,11 @@ void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 		bits = -bits;
 	}
 	if (msg->oob) {
+		if ( msg->cursize + ( bits >> 3 ) > msg->maxsize ) {
+			msg->overflowed = qtrue;
+			return;
+		}
+
 		if (bits==8) {
 			msg->data[msg->cursize] = value;
 			msg->cursize += 1;
@@ -197,6 +200,10 @@ void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 		if (bits&7) {
 			int nbits;
 			nbits = bits&7;
+			if ( msg->bit + nbits > msg->maxsize << 3 ) {
+				msg->overflowed = qtrue;
+				return;
+			}
 			for(i=0;i<nbits;i++) {
 				Huff_putBit((value&1), msg->data, &msg->bit);
 				value = (value>>1);
@@ -208,8 +215,13 @@ void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 #ifdef _NEWHUFFTABLE_
 				fwrite(&value, 1, 1, fp);
 #endif // _NEWHUFFTABLE_
-				Huff_offsetTransmit (&msgHuff.compressor, (value&0xff), msg->data, &msg->bit);
+				Huff_offsetTransmit (&msgHuff.compressor, (value&0xff), msg->data, &msg->bit, msg->maxsize << 3);
 				value = (value>>8);
+
+				if ( msg->bit > msg->maxsize << 3 ) {
+					msg->overflowed = qtrue;
+					return;
+				}
 			}
 		}
 		msg->cursize = (msg->bit>>3)+1;
@@ -221,6 +233,11 @@ int MSG_ReadBits( msg_t *msg, int bits ) {
 	int			get;
 	qboolean	sgn;
 	int			i, nbits;
+
+	if ( msg->readcount > msg->cursize ) {
+		return 0;
+	}
+
 	value = 0;
 
 	if ( bits < 0 ) {
@@ -231,6 +248,11 @@ int MSG_ReadBits( msg_t *msg, int bits ) {
 	}
 
 	if (msg->oob) {
+		if (msg->readcount + (bits>>3) > msg->cursize) {
+			msg->readcount = msg->cursize + 1;
+			return 0;
+		}
+
 		if (bits==8) {
 			value = msg->data[msg->readcount];
 			msg->readcount += 1;
@@ -253,6 +275,10 @@ int MSG_ReadBits( msg_t *msg, int bits ) {
 		nbits = 0;
 		if (bits&7) {
 			nbits = bits&7;
+			if (msg->bit + nbits > msg->cursize << 3) {
+				msg->readcount = msg->cursize + 1;
+				return 0;
+			}
 			for(i=0;i<nbits;i++) {
 				value |= (Huff_getBit(msg->data, &msg->bit)<<i);
 			}
@@ -260,11 +286,16 @@ int MSG_ReadBits( msg_t *msg, int bits ) {
 		}
 		if (bits) {
 			for(i=0;i<bits;i+=8) {
-				Huff_offsetReceive (msgHuff.decompressor.tree, &get, msg->data, &msg->bit);
+				Huff_offsetReceive (msgHuff.decompressor.tree, &get, msg->data, &msg->bit, msg->cursize<<3);
 #ifdef _NEWHUFFTABLE_
 				fwrite(&get, 1, 1, fp);
 #endif // _NEWHUFFTABLE_
 				value |= (get<<(i+nbits));
+
+				if (msg->bit > msg->cursize<<3) {
+					msg->readcount = msg->cursize + 1;
+					return 0;
+				}
 			}
 		}
 		msg->readcount = (msg->bit>>3)+1;
@@ -754,8 +785,6 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 		to->weapon = MSG_ReadDeltaKey( msg, key, from->weapon, 8);
 
 		to->forcesel = MSG_ReadDeltaKey( msg, key, from->forcesel, 8);
-		if( sv_blockJumpSelect->integer && to->forcesel == 1 ) // FP_LEVIATHAN
-			to->forcesel = 0xFF; // (byte)-1
 		to->invensel = MSG_ReadDeltaKey( msg, key, from->invensel, 8);
 
 		to->generic_cmd = MSG_ReadDeltaKey( msg, key, from->generic_cmd, 8);
@@ -1170,7 +1199,7 @@ void MSG_ReadDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to,
 	lc = MSG_ReadByte(msg);
 
 	if ( lc > numFields || lc < 0 )
-		Com_Error( ERR_DROP, "invalid entityState field count" );
+		Com_Error( ERR_DROP, "invalid entityState field count (got: %i, expecting: %i)", lc, numFields );
 
 	// shownet 2/3 will interleave with other printed info, -1 will
 	// just print the delta records`
@@ -2101,7 +2130,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 			&& (to->eFlags&EF_NODRAW) )
 		{//pilot riding *inside* a vehicle!
 			MSG_WriteBits( msg, 1, 1 );	// Pilot player state
-			numFields = (int)ARRAY_LEN( pilotPlayerStateFields ) - 82;
+			numFields = (int)ARRAY_LEN( pilotPlayerStateFields );
 			PSFields = pilotPlayerStateFields;
 		}
 		else
@@ -2350,7 +2379,7 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 		int isPilot = MSG_ReadBits( msg, 1 );
 		if ( isPilot )
 		{//pilot riding *inside* a vehicle!
-			numFields = (int)ARRAY_LEN( pilotPlayerStateFields ) - 82;
+			numFields = (int)ARRAY_LEN( pilotPlayerStateFields );
 			PSFields = pilotPlayerStateFields;
 		}
 		else
@@ -2366,7 +2395,7 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 	lc = MSG_ReadByte(msg);
 
 	if ( lc > numFields || lc < 0 )
-		Com_Error( ERR_DROP, "invalid playerState field count" );
+		Com_Error( ERR_DROP, "invalid playerState field count (got: %i, expecting: %i)", lc, numFields );
 
 	for ( i = 0, field = PSFields ; i < lc ; i++, field++ ) {
 		fromF = (int *)( (byte *)from + field->offset );

@@ -35,10 +35,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 static char binaryPath[ MAX_OSPATH ] = { 0 };
 static char installPath[ MAX_OSPATH ] = { 0 };
 
-#ifndef DEDICATED
 cvar_t *com_minimized;
 cvar_t *com_unfocused;
-#endif
+cvar_t *com_maxfps;
+cvar_t *com_maxfpsMinimized;
+cvar_t *com_maxfpsUnfocused;
+cvar_t *com_unpackLibraries;
 
 /*
 =================
@@ -153,10 +155,18 @@ void Sys_Init( void ) {
 	Cmd_AddCommand ("in_restart", IN_Restart);
 	Cvar_Get( "arch", OS_STRING " " ARCH_STRING, CVAR_ROM );
 	Cvar_Get( "username", Sys_GetCurrentUser(), CVAR_ROM );
-#ifndef DEDICATED
+
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
 	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
+#ifdef _JK2EXE
+	com_maxfps = Cvar_Get ("com_maxfps", "125", CVAR_ARCHIVE );
+#else
+	com_maxfps = Cvar_Get( "com_maxfps", "125", CVAR_ARCHIVE, "Maximum frames per second" );
 #endif
+	com_maxfpsUnfocused = Cvar_Get( "com_maxfpsUnfocused", "0", CVAR_ARCHIVE_ND );
+	com_maxfpsMinimized = Cvar_Get( "com_maxfpsMinimized", "50", CVAR_ARCHIVE_ND );
+
+	com_unpackLibraries = Cvar_Get( "com_unpackLibraries", "0", CVAR_INIT|CVAR_PROTECTED );
 }
 
 static void NORETURN Sys_Exit( int ex ) {
@@ -290,6 +300,13 @@ from executable path, then fs_basepath.
 void *Sys_LoadDll( const char *name, qboolean useSystemLib )
 {
 	void *dllhandle = NULL;
+
+	// Don't load any DLLs that end with the pk3 extension
+	if ( COM_CompareExtension( name, ".pk3" ) )
+	{
+		Com_Printf( S_COLOR_YELLOW "WARNING: Rejecting DLL named \"%s\"", name );
+		return NULL;
+	}
 
 	if ( useSystemLib )
 	{
@@ -437,7 +454,7 @@ static void *Sys_LoadDllFromPaths( const char *filename, const char *gamedir, co
 			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
 		}
 	}
-		
+
 	return NULL;
 }
 
@@ -455,26 +472,28 @@ void *Sys_LoadLegacyGameDll( const char *name, VMMainProc **vmMain, SystemCallPr
 	Com_sprintf (filename, sizeof(filename), "%s" ARCH_STRING DLL_EXT, name);
 
 #if defined(_DEBUG)
-	libHandle = Sys_LoadLibrary( name );
+	libHandle = Sys_LoadLibrary( filename );
 	if ( !libHandle )
 #endif
 	{
-		UnpackDLLResult unpackResult = Sys_UnpackDLL(filename);
-		if ( !unpackResult.succeeded )
-		{
-			if ( Sys_DLLNeedsUnpacking() )
+		if ( com_unpackLibraries->integer ) {
+			UnpackDLLResult unpackResult = Sys_UnpackDLL(filename);
+			if ( !unpackResult.succeeded )
 			{
-				FreeUnpackDLLResult(&unpackResult);
-				Com_DPrintf( "Sys_LoadLegacyGameDll: Failed to unpack %s from PK3.\n", filename );
-				return NULL;
+				if ( Sys_DLLNeedsUnpacking() )
+				{
+					FreeUnpackDLLResult(&unpackResult);
+					Com_DPrintf( "Sys_LoadLegacyGameDll: Failed to unpack %s from PK3.\n", filename );
+					return NULL;
+				}
 			}
-		}
-		else
-		{
-			libHandle = Sys_LoadLibrary(unpackResult.tempDLLPath);
-		}
+			else
+			{
+				libHandle = Sys_LoadLibrary(unpackResult.tempDLLPath);
+			}
 
-		FreeUnpackDLLResult(&unpackResult);
+			FreeUnpackDLLResult(&unpackResult);
+		}
 
 		if ( !libHandle )
 		{
@@ -539,7 +558,7 @@ void *Sys_LoadSPGameDll( const char *name, GetGameAPIProc **GetGameAPI )
 #if defined(MACOS_X) && !defined(_JK2EXE)
     //First, look for the old-style mac .bundle that's inside a pk3
     //It's actually zipped, and the zipfile has the same name as 'name'
-    libHandle = Sys_LoadMachOBundle( name );
+    libHandle = Sys_LoadMachOBundle( filename );
 #endif
 
 	if (!libHandle) {
@@ -586,26 +605,28 @@ void *Sys_LoadGameDll( const char *name, GetModuleAPIProc **moduleAPI )
 	Com_sprintf (filename, sizeof(filename), "%s" ARCH_STRING DLL_EXT, name);
 
 #if defined(_DEBUG)
-	libHandle = Sys_LoadLibrary( name );
+	libHandle = Sys_LoadLibrary( filename );
 	if ( !libHandle )
 #endif
 	{
-		UnpackDLLResult unpackResult = Sys_UnpackDLL(filename);
-		if ( !unpackResult.succeeded )
-		{
-			if ( Sys_DLLNeedsUnpacking() )
+		if ( com_unpackLibraries->integer ) {
+			UnpackDLLResult unpackResult = Sys_UnpackDLL(filename);
+			if ( !unpackResult.succeeded )
 			{
-				FreeUnpackDLLResult(&unpackResult);
-				Com_DPrintf( "Sys_LoadLegacyGameDll: Failed to unpack %s from PK3.\n", filename );
-				return NULL;
+				if ( Sys_DLLNeedsUnpacking() )
+				{
+					FreeUnpackDLLResult(&unpackResult);
+					Com_DPrintf( "Sys_LoadLegacyGameDll: Failed to unpack %s from PK3.\n", filename );
+					return NULL;
+				}
 			}
-		}
-		else
-		{
-			libHandle = Sys_LoadLibrary(unpackResult.tempDLLPath);
-		}
+			else
+			{
+				libHandle = Sys_LoadLibrary(unpackResult.tempDLLPath);
+			}
 
-		FreeUnpackDLLResult(&unpackResult);
+			FreeUnpackDLLResult(&unpackResult);
+		}
 
 		if ( !libHandle )
 		{
@@ -724,7 +745,7 @@ int main ( int argc, char* argv[] )
 	int		i;
 	char	commandLine[ MAX_STRING_CHARS ] = { 0 };
 
-	Sys_PlatformInit();
+	Sys_PlatformInit( argc, argv );
 	CON_Init();
 
 	// get the initial time base
@@ -756,34 +777,41 @@ int main ( int argc, char* argv[] )
 
 	Com_Init (commandLine);
 
-	NET_Init();
+#ifndef DEDICATED
+	SDL_version compiled;
+	SDL_version linked;
+
+	SDL_VERSION( &compiled );
+	SDL_GetVersion( &linked );
+
+	Com_Printf( "SDL Version Compiled: %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch );
+	Com_Printf( "SDL Version Linked: %d.%d.%d\n", linked.major, linked.minor, linked.patch );
+#endif
 
 	// main game loop
 	while (1)
 	{
-		bool shouldSleep = false;
+		if ( com_busyWait->integer )
+		{
+			bool shouldSleep = false;
 
 #if !defined(_JK2EXE)
-		if ( com_dedicated->integer )
-		{
-			shouldSleep = true;
-		}
+			if ( com_dedicated->integer )
+			{
+				shouldSleep = true;
+			}
 #endif
 
-#if !defined(DEDICATED)
-		if ( com_minimized->integer )
-		{
-			shouldSleep = true;
-		}
-#endif
+			if ( com_minimized->integer )
+			{
+				shouldSleep = true;
+			}
 
-		if ( shouldSleep )
-		{
-			Sys_Sleep( 5 );
+			if ( shouldSleep )
+			{
+				Sys_Sleep( 5 );
+			}
 		}
-
-		// make sure mouse and joystick are only called once a frame
-		IN_Frame();
 
 		// run the game
 		Com_Frame();

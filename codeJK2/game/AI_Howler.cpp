@@ -20,7 +20,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 #include "g_headers.h"
-	    
+
 #include "b_local.h"
 
 // These define the working combat range for these suckers
@@ -72,7 +72,7 @@ void Howler_Patrol( void )
 	{
 		if ( TIMER_Done( NPC, "patrolTime" ))
 		{
-			TIMER_Set( NPC, "patrolTime", crandom() * 5000 + 5000 );
+			TIMER_Set( NPC, "patrolTime", Q_flrand(-1.0f, 1.0f) * 5000 + 5000 );
 		}
 	}
 
@@ -91,7 +91,7 @@ void Howler_Patrol( void )
 		return;
 	}
 }
- 
+
 /*
 -------------------------
 Howler_Move
@@ -136,7 +136,7 @@ void Howler_Attack( void )
 	if ( !TIMER_Exists( NPC, "attacking" ))
 	{
 		// Going to do ATTACK1
-		TIMER_Set( NPC, "attacking", 1700 + random() * 200 );
+		TIMER_Set( NPC, "attacking", 1700 + Q_flrand(0.0f, 1.0f) * 200 );
 		NPC_SetAnim( NPC, SETANIM_BOTH, BOTH_ATTACK1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD );
 
 		TIMER_Set( NPC, "attack_dmg", 200 ); // level two damage
@@ -169,7 +169,7 @@ void Howler_Combat( void )
 	// Sometimes I have problems with facing the enemy I'm attacking, so force the issue so I don't look dumb
 	NPC_FaceEnemy( qtrue );
 
-	float	distance	= DistanceHorizontalSquared( NPC->currentOrigin, NPC->enemy->currentOrigin );	
+	float	distance	= DistanceHorizontalSquared( NPC->currentOrigin, NPC->enemy->currentOrigin );
 
 	qboolean	advance = (qboolean)( distance > MIN_DISTANCE_SQR ? qtrue : qfalse  );
 
@@ -181,7 +181,7 @@ void Howler_Combat( void )
 		}
 		else
 		{
-			Howler_Move( 1 );
+			Howler_Move( qtrue );
 		}
 	}
 	else
@@ -195,7 +195,7 @@ void Howler_Combat( void )
 NPC_Howler_Pain
 -------------------------
 */
-void NPC_Howler_Pain( gentity_t *self, gentity_t *inflictor, gentity_t *other, vec3_t point, int damage, int mod,int hitLoc ) 
+void NPC_Howler_Pain( gentity_t *self, gentity_t *inflictor, gentity_t *other, vec3_t point, int damage, int mod,int hitLoc )
 {
 	if ( damage >= 10 )
 	{

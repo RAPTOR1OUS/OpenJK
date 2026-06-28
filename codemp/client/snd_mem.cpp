@@ -236,7 +236,7 @@ void ResampleSfx (sfx_t *sfx, int iInRate, int iInWidth, byte *pData)
 		if (iInWidth == 2) {
 			iSample = LittleShort ( ((short *)pData)[iSrcSample] );
 		} else {
-			iSample = (int)( (unsigned char)(pData[iSrcSample]) - 128) << 8;
+			iSample = (unsigned int)( (unsigned char)(pData[iSrcSample]) - 128) << 8;
 		}
 
 		sfx->pSoundData[i] = (short)iSample;
@@ -258,10 +258,10 @@ void ResampleSfx (sfx_t *sfx, int iInRate, int iInWidth, byte *pData)
 
 void S_LoadSound_Finalize(wavinfo_t	*info, sfx_t *sfx, byte *data)
 {
-	float	stepscale	= (float)info->rate / dma.speed;
-	int		len			= (int)(info->samples / stepscale);
+	//float	stepscale	= (float)info->rate / dma.speed;
+	//int		len			= (int)(info->samples / stepscale);
 
-	len *= info->width;
+	//len *= info->width;
 
 	sfx->eSoundCompressionMethod = ct_16;
 	sfx->iSoundLengthInSamples	 = info->samples;
@@ -833,15 +833,17 @@ static qboolean S_LoadSound_Actual( sfx_t *sfx )
 
 #ifdef Q3_BIG_ENDIAN
 						// the MP3 decoder returns the samples in the correct endianness, but ResampleSfx byteswaps them,
-						// so we have to swap them again... 
+						// so we have to swap them again...
 						sfx->fVolRange	= 0;
-						
+
 						for (int i = 0; i < sfx->iSoundLengthInSamples; i++)
 						{
 							sfx->pSoundData[i] = LittleShort(sfx->pSoundData[i]);
-							if (sfx->fVolRange < (abs(sfx->pSoundData[i]) >> 8))
+							// C++11 defines double abs(short) which is not what we want here,
+							// because double >> int is not defined. Force interpretation as int
+							if (sfx->fVolRange < (abs(static_cast<int>(sfx->pSoundData[i])) >> 8))
 							{
-								sfx->fVolRange = abs(sfx->pSoundData[i]) >> 8;
+								sfx->fVolRange = abs(static_cast<int>(sfx->pSoundData[i])) >> 8;
 							}
 						}
 #endif

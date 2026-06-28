@@ -37,9 +37,11 @@ typedef enum netadrtype_s
 typedef struct netadr_s
 {
 	netadrtype_t	type;
-
-	byte	ip[4];
-	unsigned short	port;
+	union {
+		byte		ip[4];
+		int32_t		ipi;
+	};
+	uint16_t	port;
 } netadr_t;
 
 /*
@@ -68,7 +70,7 @@ typedef enum {
 	SE_MOUSE,	// evValue and evValue2 are reletive signed x / y moves
 	SE_JOYSTICK_AXIS,	// evValue is an axis number and evValue2 is the current state (-127 to 127)
 	SE_CONSOLE,	// evPtr is a char*
-	SE_PACKET	// evPtr is a netadr_t followed by data bytes to evPtrLength
+	SE_MAX
 } sysEventType_t;
 
 typedef struct sysEvent_s {
@@ -79,10 +81,11 @@ typedef struct sysEvent_s {
 	void			*evPtr;			// this must be manually freed if not NULL
 } sysEvent_t;
 
-#ifndef DEDICATED
 extern cvar_t *com_minimized;
 extern cvar_t *com_unfocused;
-#endif
+extern cvar_t *com_maxfps;
+extern cvar_t *com_maxfpsMinimized;
+extern cvar_t *com_maxfpsUnfocused;
 
 sysEvent_t	Sys_GetEvent( void );
 
@@ -90,7 +93,7 @@ void	Sys_Init (void);
 
 // general development dll loading for virtual machine testing
 typedef void *GetGameAPIProc( void  *);
-typedef intptr_t QDECL VMMainProc( int, ... );
+typedef intptr_t QDECL VMMainProc( int, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t );
 typedef intptr_t QDECL SystemCallProc( intptr_t, ... );
 typedef void * QDECL GetModuleAPIProc( int, ... );
 
@@ -120,12 +123,12 @@ bool Sys_RandomBytes( byte *string, int len );
 
 void	Sys_SetErrorText( const char *text );
 
-void	Sys_SendPacket( int length, const void *data, netadr_t to );
+void	Sys_SendPacket( int length, const void *data, const netadr_t *to );
 
 qboolean	Sys_StringToAdr( const char *s, netadr_t *a );
 //Does NOT parse port numbers, only base addresses.
 
-qboolean	Sys_IsLANAddress (netadr_t adr);
+qboolean	Sys_IsLANAddress (const netadr_t *adr);
 void		Sys_ShowIP(void);
 
 qboolean	Sys_Mkdir( const char *path );
@@ -138,8 +141,8 @@ char    *Sys_DefaultAppPath(void);
 #endif
 
 char	*Sys_DefaultHomePath(void);
-const char *Sys_Dirname( char *path );
-const char *Sys_Basename( char *path );
+const char *Sys_Dirname( const char *path );
+const char *Sys_Basename( const char *path );
 
 bool Sys_PathCmp( const char *path1, const char *path2 );
 
@@ -200,5 +203,6 @@ void		WIN_Present( window_t *window );
 void		WIN_SetGamma( glconfig_t *glConfig, byte red[256], byte green[256], byte blue[256] );
 void		WIN_Shutdown( void );
 void *		WIN_GL_GetProcAddress( const char *proc );
+qboolean	WIN_GL_ExtensionSupported( const char *extension );
 
 uint8_t ConvertUTF32ToExpectedCharset( uint32_t utf32 );

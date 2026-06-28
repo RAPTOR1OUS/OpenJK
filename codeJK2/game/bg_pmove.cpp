@@ -5110,7 +5110,7 @@ static void PM_Footsteps( void )
 					PM_SetAnim(pm,SETANIM_LEGS,legsAnim,SETANIM_FLAG_NORMAL);
 				}
 			}
-			else if( (validNPC && pm->ps->weapon > WP_SABER && pm->ps->weapon < WP_DET_PACK ))// && pm->gent->client->race != RACE_BORG))//Being careful or carrying a 2-handed weapon
+			else if( (validNPC && pm->ps->weapon > WP_SABER && pm->ps->weapon < WP_DET_PACK ))//Being careful or carrying a 2-handed weapon
 			{//Squadmates use BOTH_STAND3
 				oldAnim = pm->ps->legsAnim;
 				if(oldAnim != BOTH_GUARD_LOOKAROUND1 && oldAnim != BOTH_GUARD_IDLE1 &&
@@ -6499,9 +6499,9 @@ qboolean PM_SaberLocked( void )
 					qboolean ret =
 #endif // _DEBUG
 						gi.G2API_GetBoneAnimIndex( &gent->ghoul2[gent->playerModel], gent->lowerLumbarBone, (cg.time?cg.time:level.time), &currentFrame, &junk, &junk, &junk, &junk2, NULL );
-
+#ifdef _DEBUG
 					assert(ret); // this would be pretty bad, the below code seems to assume the call succeeds. -gil
-
+#endif
 					strength = G_SaberLockStrength( gent );
 					if ( pm->ps->torsoAnim == BOTH_CCWCIRCLELOCK ||
 						pm->ps->torsoAnim == BOTH_BF2LOCK )
@@ -8021,12 +8021,7 @@ static void PM_Weapon( void )
 	{
 		if ( pm->gent && pm->gent->client )
 		{
-			// borg no longer exist, use NPC_class to check for any npc's that don't drop their weapons (if there are any)
-			// Sigh..borg shouldn't drop their weapon attachments when they die.  Also, never drop a lightsaber!
-		//	if ( pm->gent->client->playerTeam != TEAM_BORG)
-			{
-				pm->ps->weapon = WP_NONE;
-			}
+			pm->ps->weapon = WP_NONE;
 		}
 
 		if ( pm->gent )

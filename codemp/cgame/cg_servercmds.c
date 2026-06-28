@@ -27,6 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // be a valid snapshot this frame
 
 #include "cg_local.h"
+#include "game/bg_public.h"
 #include "ui/menudef.h"
 #include "ghoul2/G2.h"
 #include "ui/ui_public.h"
@@ -909,6 +910,11 @@ static void CG_ConfigStringModified( void ) {
 	else if ( num == CS_SHADERSTATE ) {
 		CG_ShaderStateChanged();
 	}
+	else if ( num == CS_LEGACY_FIXES ) {
+		// LEGACYFIX_SABERMOVEDATA etc may have changed
+		BG_FixSaberMoveData();
+		BG_FixWeaponAttackAnim();
+	}
 	else if ( num >= CS_LIGHT_STYLES && num < CS_LIGHT_STYLES + (MAX_LIGHT_STYLES * 3))
 	{
 		CG_SetLightstyle(num - CS_LIGHT_STYLES);
@@ -1445,9 +1451,9 @@ static void CG_RestoreClientGhoul_f( void ) {
 		body = &cg_entities[bodyIndex];
 
 		if ( side )
-			body->teamPowerType = qtrue; //light side
+			body->teamPowerType = 1; //light side
 		else
-			body->teamPowerType = qfalse; //dark side
+			body->teamPowerType = 0; //dark side
 
 		CG_BodyQueueCopy( body, clent->currentState.number, weaponIndex );
 	}
@@ -1593,7 +1599,6 @@ int svcmdcmp( const void *a, const void *b ) {
 	return Q_stricmp( (const char *)a, ((serverCommand_t*)b)->cmd );
 }
 
-/* This array MUST be sorted correctly by alphabetical name field */
 static serverCommand_t	commands[] = {
 	{ "chat",				CG_Chat_f },
 	{ "clientLevelShot",	CG_ClientLevelShot_f },
@@ -1640,7 +1645,7 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
-	command = (serverCommand_t *)bsearch( cmd, commands, numCommands, sizeof( commands[0] ), svcmdcmp );
+	command = (serverCommand_t *)Q_LinearSearch( cmd, commands, numCommands, sizeof( commands[0] ), svcmdcmp );
 
 	if ( command ) {
 		command->func();

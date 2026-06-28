@@ -22,7 +22,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 // ICARUS Engine Interface File
 //
-//	This file is the only section of the ICARUS systems that 
+//	This file is the only section of the ICARUS systems that
 //	is not directly portable from engine to engine.
 //
 //	-- jweier
@@ -79,11 +79,11 @@ extern cvar_t	*g_skippingcin;
 
 extern qboolean	stop_icarus;
 
-#define stringIDExpand(str, strEnum)	str, strEnum, ENUM2STRING(strEnum)
+#define stringIDExpand(str, strEnum)	{ str, strEnum }, ENUM2STRING(strEnum)
 //#define stringIDExpand(str, strEnum)	str,strEnum
 
 /*
-stringID_table_t tagsTable [] = 
+stringID_table_t tagsTable [] =
 {
 }
 */
@@ -125,12 +125,12 @@ stringID_table_t BSETTable[] =
 	ENUM2STRING(BSET_FFIRE),//# script to run when player shoots their own teammates
 	ENUM2STRING(BSET_FFDEATH),//# script to run when player kills a teammate
 	stringIDExpand("", BSET_INVALID),
-	"",				-1,
+	{"",				-1},
 };
 
 stringID_table_t WPTable[] =
 {
-	"NULL",WP_NONE,
+	{"NULL", WP_NONE},
 	ENUM2STRING(WP_NONE),
 	// Player weapons
 	ENUM2STRING(WP_SABER),				 // NOTE: lots of code assumes this is the first weapon (... which is crap) so be careful -Ste.
@@ -151,7 +151,7 @@ stringID_table_t WPTable[] =
 	// NPC enemy weapons
 	ENUM2STRING(WP_EMPLACED_GUN),
 	ENUM2STRING(WP_BOT_LASER),		// Probe droid	- Laser blast
-	ENUM2STRING(WP_TURRET),			// turret guns 
+	ENUM2STRING(WP_TURRET),			// turret guns
 	ENUM2STRING(WP_ATST_MAIN),
 	ENUM2STRING(WP_ATST_SIDE),
 	ENUM2STRING(WP_TIE_FIGHTER),
@@ -407,7 +407,7 @@ stringID_table_t setTable[] =
 	{"",	SET_},
 };
 
-qboolean COM_ParseString( char **data, char **s ); 
+qboolean COM_ParseString( char **data, char **s );
 
 //=======================================================================
 
@@ -423,7 +423,7 @@ vec4_t textcolor_scroll;
 ============
 Q3_ReadScript
   Description	: Reads in a file and attaches the script directory properly
-  Return type	: static int 
+  Return type	: static int
   Argument		: const char *name
   Argument		: void **buf
 ============
@@ -436,9 +436,9 @@ static int Q3_ReadScript( const char *name, void **buf )
 
 /*
 ============
-Q3_CenterPrint 
+Q3_CenterPrint
   Description	: Prints a message in the center of the screen
-  Return type	: static void 
+  Return type	: static void
   Argument		:  const char *format
   Argument		: ...
 ============
@@ -483,39 +483,39 @@ static void SetTextColor ( vec4_t textcolor,const char *color)
 
 	if (Q_stricmp(color,"BLACK") == 0)
 	{
-		Vector4Copy( colorTable[CT_BLACK], textcolor );
+		VectorCopy4( colorTable[CT_BLACK], textcolor );
 	}
 	else if (Q_stricmp(color,"RED") == 0)
 	{
-		Vector4Copy( colorTable[CT_RED], textcolor );
+		VectorCopy4( colorTable[CT_RED], textcolor );
 	}
 	else if (Q_stricmp(color,"GREEN") == 0)
 	{
-		Vector4Copy( colorTable[CT_GREEN], textcolor );
+		VectorCopy4( colorTable[CT_GREEN], textcolor );
 	}
 	else if (Q_stricmp(color,"YELLOW") == 0)
 	{
-		Vector4Copy( colorTable[CT_YELLOW], textcolor );
+		VectorCopy4( colorTable[CT_YELLOW], textcolor );
 	}
 	else if (Q_stricmp(color,"BLUE") == 0)
 	{
-		Vector4Copy( colorTable[CT_BLUE], textcolor );
+		VectorCopy4( colorTable[CT_BLUE], textcolor );
 	}
 	else if (Q_stricmp(color,"CYAN") == 0)
 	{
-		Vector4Copy( colorTable[CT_CYAN], textcolor );
+		VectorCopy4( colorTable[CT_CYAN], textcolor );
 	}
 	else if (Q_stricmp(color,"MAGENTA") == 0)
 	{
-		Vector4Copy( colorTable[CT_MAGENTA], textcolor );
+		VectorCopy4( colorTable[CT_MAGENTA], textcolor );
 	}
 	else if (Q_stricmp(color,"WHITE") == 0)
 	{
-		Vector4Copy( colorTable[CT_WHITE], textcolor );
+		VectorCopy4( colorTable[CT_WHITE], textcolor );
 	}
-	else 
+	else
 	{
-		Vector4Copy( colorTable[CT_WHITE], textcolor );
+		VectorCopy4( colorTable[CT_WHITE], textcolor );
 	}
 
 	return;
@@ -614,8 +614,8 @@ static void Q3_TaskIDSet( gentity_t *ent, taskID_t taskType, int taskID )
 /*
 ============
 Q3_CheckStringCounterIncrement
-  Description	: 
-  Return type	: static float 
+  Description	:
+  Return type	: static float
   Argument		: const char *string
 ============
 */
@@ -788,7 +788,7 @@ static void	Q3_SetMissionFailed(const char *TextEnum)
 	ent->health = 0;
 	//FIXME: what about other NPCs?  Scripts?
 
-	// statusTextIndex is looked at on the client side. 
+	// statusTextIndex is looked at on the client side.
 	statusTextIndex = GetIDForString( missionFailedTable, TextEnum );
 	cg.missionStatusShow = qtrue;
 	if ( ent->client )
@@ -952,7 +952,7 @@ static unsigned int Q3_GetTime( void )
 G_AddSexToMunroString
 
 Take any string, look for "kyle/" replace with "kyla/" based on "sex"
-And: Take any string, look for "/mr_" replace with "/ms_" based on "sex" 
+And: Take any string, look for "/mr_" replace with "/ms_" based on "sex"
 returns qtrue if changed to ms
 =============
 */
@@ -1010,7 +1010,7 @@ static int Q3_PlaySound( int taskID, int entID, const char *name, const char *ch
 	soundChannel_t	voice_chan = CHAN_VOICE; // set a default so the compiler doesn't bitch
 	qboolean		type_voice = qfalse;
 
-	Q_strncpyz( finalName, name, MAX_QPATH, 0 );
+	Q_strncpyz( finalName, name, MAX_QPATH );
 	Q_strupr(finalName);
 	//G_AddSexToMunroString( finalName, qtrue );
 
@@ -1055,7 +1055,7 @@ static int Q3_PlaySound( int taskID, int entID, const char *name, const char *ch
 		if (g_subtitles->integer == 1 || (ent->NPC && (ent->NPC->scriptFlags & SCF_USE_SUBTITLES) ) ) // Show all text
 		{
 			if ( in_camera)	// Cinematic
-			{					
+			{
 				gi.SendServerCommand( 0, "ct \"%s\" %i", finalName, soundHandle );
 			}
 			else //if (precacheWav[i].speaker==SP_NONE)	//  lower screen text
@@ -1073,7 +1073,7 @@ static int Q3_PlaySound( int taskID, int entID, const char *name, const char *ch
 		else if (g_subtitles->integer == 2) // Show only talking head text and CINEMATIC
 		{
 			if ( in_camera)	// Cinematic text
-			{							
+			{
 				gi.SendServerCommand( 0, "ct \"%s\" %i", finalName, soundHandle);
 			}
 		}
@@ -1176,7 +1176,7 @@ static void Q3_SetOrigin( int entID, vec3_t origin )
 		VectorClear (ent->client->ps.velocity);
 		ent->client->ps.pm_time = 160;		// hold time
 		ent->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-		
+
 		ent->client->ps.eFlags ^= EF_TELEPORT_BIT;
 
 //		G_KillBox (ent);
@@ -1193,8 +1193,8 @@ static void Q3_SetOrigin( int entID, vec3_t origin )
 /*
 ============
 MoveOwner
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *self
 ============
 */
@@ -1242,7 +1242,7 @@ static qboolean Q3_SetTeleportDest( int entID, vec3_t org )
 
 			teleporter->e_ThinkFunc = thinkF_MoveOwner;
 			teleporter->nextthink = level.time + FRAMETIME;
-			
+
 			return qfalse;
 		}
 		else
@@ -1309,8 +1309,8 @@ static void Q3_SetVelocity( int entID, int axis, float speed )
 /*
 ============
 Q3_SetAdjustAreaPortals
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean shields
 ============
@@ -1331,8 +1331,8 @@ static void Q3_SetAdjustAreaPortals( int entID, qboolean adjust )
 /*
 ============
 Q3_SetDmgByHeavyWeapOnly
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean dmg
 ============
@@ -1346,15 +1346,15 @@ static void Q3_SetDmgByHeavyWeapOnly( int entID, qboolean dmg )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetDmgByHeavyWeapOnly: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	ent->flags = (dmg) ? (ent->flags|FL_DMG_BY_HEAVY_WEAP_ONLY) : (ent->flags&~FL_DMG_BY_HEAVY_WEAP_ONLY);
 }
 
 /*
 ============
 Q3_SetShielded
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean dmg
 ============
@@ -1368,15 +1368,15 @@ static void Q3_SetShielded( int entID, qboolean dmg )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetShielded: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	ent->flags = (dmg) ? (ent->flags|FL_SHIELDED) : (ent->flags&~FL_SHIELDED);
 }
 
 /*
 ============
 Q3_SetNoGroups
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean dmg
 ============
@@ -1396,7 +1396,7 @@ static void Q3_SetNoGroups( int entID, qboolean noGroups )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetNoGroups: ent %s is not an NPC!\n", ent->targetname );
 		return;
 	}
-	
+
 	ent->NPC->scriptFlags = noGroups ? (ent->NPC->scriptFlags|SCF_NO_GROUPS) : (ent->NPC->scriptFlags&~SCF_NO_GROUPS);
 }
 
@@ -1412,18 +1412,18 @@ void moverCallback( gentity_t *ent )
 {
 	//complete the task
 	Q3_TaskIDComplete( ent, TID_MOVE_NAV );
-	
+
 	// play sound
 	ent->s.loopSound = 0;//stop looping sound
 	G_PlayDoorSound( ent, BMS_END );//play end sound
 
-	if ( ent->moverState == MOVER_1TO2 ) 
+	if ( ent->moverState == MOVER_1TO2 )
 	{//reached open
 		// reached pos2
 		MatchTeam( ent, MOVER_POS2, level.time );
 		//SetMoverState( ent, MOVER_POS2, level.time );
-	} 
-	else if ( ent->moverState == MOVER_2TO1 ) 
+	}
+	else if ( ent->moverState == MOVER_2TO1 )
 	{//reached closed
 		MatchTeam( ent, MOVER_POS1, level.time );
 		//SetMoverState( ent, MOVER_POS1, level.time );
@@ -1527,11 +1527,11 @@ static void Q3_Lerp2Start( int entID, int taskID, float duration )
 	gentity_t	*ent = &g_entities[entID];
 
 	if(!ent)
-	{	
+	{
 		Q3_DebugPrint( WL_WARNING, "Q3_Lerp2Start: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_Lerp2Start: ent %d is NOT a mover!\n", entID);
@@ -1554,7 +1554,7 @@ static void Q3_Lerp2Start( int entID, int taskID, float duration )
 
 	ent->s.pos.trDuration = duration * 10;	//In seconds
 	ent->s.pos.trTime = level.time;
-	
+
 	Q3_TaskIDSet( ent, TID_MOVE_NAV, taskID );
 	// starting sound
 	G_PlayDoorLoopSound( ent );
@@ -1579,7 +1579,7 @@ static void Q3_Lerp2End( int entID, int taskID, float duration )
 		Q3_DebugPrint( WL_WARNING, "Q3_Lerp2End: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_Lerp2End: ent %d is NOT a mover!\n", entID);
@@ -1610,7 +1610,7 @@ static void Q3_Lerp2End( int entID, int taskID, float duration )
 
 	ent->s.pos.trDuration = duration * 10;	//In seconds
 	ent->s.time = level.time;
-	
+
 	Q3_TaskIDSet( ent, TID_MOVE_NAV, taskID );
 	// starting sound
 	G_PlayDoorLoopSound( ent );
@@ -1638,7 +1638,7 @@ static void Q3_Lerp2Pos( int taskID, int entID, vec3_t origin, vec3_t angles, fl
 		Q3_DebugPrint( WL_WARNING, "Q3_Lerp2Pos: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_Lerp2Pos: ent %d is NOT a mover!\n", entID);
@@ -1755,7 +1755,7 @@ static void Q3_Lerp2Origin( int taskID, int entID, vec3_t origin, float duration
 		Q3_DebugPrint( WL_WARNING, "Q3_Lerp2Origin: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_Lerp2Origin: ent %d is NOT a mover!\n", entID);
@@ -1825,7 +1825,7 @@ static void Q3_SetOriginOffset( int entID, int axis, float offset )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetOriginOffset: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetOriginOffset: ent %d is NOT a mover!\n", entID);
@@ -1860,7 +1860,7 @@ static void Q3_Lerp2Angles( int taskID, int entID, vec3_t angles, float duration
 		Q3_DebugPrint( WL_WARNING, "Q3_Lerp2Angles: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( ent->client || ent->NPC || Q_stricmp(ent->classname, "target_scriptrunner") == 0 )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_Lerp2Angles: ent %d is NOT a mover!\n", entID);
@@ -1888,7 +1888,7 @@ static void Q3_Lerp2Angles( int taskID, int entID, vec3_t angles, float duration
 	}
 
 	ent->s.apos.trTime = level.time;
-	
+
 	Q3_TaskIDSet( ent, TID_ANGLE_FACE, taskID );
 
 	//ent->e_ReachedFunc = reachedF_NULL;
@@ -1921,7 +1921,7 @@ static int	Q3_GetTag( int entID, const char *name, int lookup, vec3_t info )
 	case TYPE_ANGLES:
 		//return TAG_GetAngles( ent->targetname, name, info );
 		return TAG_GetAngles( ent->ownername, name, info );
-		break;	
+		break;
 	}
 
 	return false;
@@ -2002,8 +2002,8 @@ static void Q3_SetNavGoal( int entID, const char *name )
 /*
 ============
 SetLowerAnim
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int animID
 ============
@@ -2030,9 +2030,9 @@ static void SetLowerAnim( int entID, int animID)
 
 /*
 ============
-SetUpperAnim 
-  Description	: 
-  Return type	: static void 
+SetUpperAnim
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int animID
 ============
@@ -2076,7 +2076,7 @@ static qboolean Q3_SetAnimUpper( int entID, const char *anim_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetAnimUpper: unknown animation sequence '%s'\n", anim_name );
 		return qfalse;
 	}
-	
+
 	if ( !PM_HasAnimation( &g_entities[entID], animID ) )
 	{
 		return qfalse;
@@ -2107,7 +2107,7 @@ static qboolean Q3_SetAnimLower( int entID, const char *anim_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetAnimLower: unknown animation sequence '%s'\n", anim_name );
 		return qfalse;
 	}
-	
+
 	if ( !PM_HasAnimation( &g_entities[entID], animID ) )
 	{
 		return qfalse;
@@ -2120,8 +2120,8 @@ static qboolean Q3_SetAnimLower( int entID, const char *anim_name )
 /*
 ============
 Q3_SetAnimHoldTime
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int int_data
   Argument		: qboolean lower
@@ -2144,7 +2144,7 @@ static void Q3_SetAnimHoldTime( int entID, int int_data, qboolean lower )
 		Q3_DebugPrint( WL_ERROR, "Q3_SetAnimHoldTime: ent %d is NOT a player or NPC!\n", entID);
 		return;
 	}
-	
+
 	if(lower)
 	{
 		PM_SetLegsAnimTimer( ent, &ent->client->ps.legsAnimTimer, int_data );
@@ -2297,34 +2297,21 @@ static void Q3_SetLeader( int entID, const char *name )
 	}
 }
 
-stringID_table_t teamTable [] = 
+stringID_table_t teamTable [] =
 {
 	ENUM2STRING(TEAM_FREE),
-//	ENUM2STRING(TEAM_STARFLEET),
-//	ENUM2STRING(TEAM_BORG),
-//	ENUM2STRING(TEAM_PARASITE),
-//	ENUM2STRING(TEAM_SCAVENGERS),
-//	ENUM2STRING(TEAM_KLINGON),
-//	ENUM2STRING(TEAM_MALON),
-//	ENUM2STRING(TEAM_HIROGEN),
-//	ENUM2STRING(TEAM_IMPERIAL),
-//	ENUM2STRING(TEAM_STASIS),
-//	ENUM2STRING(TEAM_8472),
-//	ENUM2STRING(TEAM_BOTS),
-//	ENUM2STRING(TEAM_FORGE),
-//	ENUM2STRING(TEAM_DISGUISE),
 	ENUM2STRING(TEAM_PLAYER),
 	ENUM2STRING(TEAM_ENEMY),
 	ENUM2STRING(TEAM_NEUTRAL),
-	"", TEAM_FREE,
+	{"", TEAM_FREE},
 };
 
 
 /*
 ============
 Q3_SetPlayerTeam
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: const char *teamName
 ============
@@ -2354,8 +2341,8 @@ static void Q3_SetPlayerTeam( int entID, const char *teamName )
 /*
 ============
 Q3_SetEnemyTeam
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: const char *teamName
 ============
@@ -2375,7 +2362,7 @@ static void Q3_SetEnemyTeam( int entID, const char *teamName )
 		Q3_DebugPrint( WL_ERROR, "Q3_SetEnemyTeam: ent %d is NOT a player or NPC!\n", entID);
 		return;
 	}
-	
+
 	ent->client->enemyTeam = (team_t)GetIDForString( teamTable, teamName );
 }
 
@@ -2383,8 +2370,8 @@ static void Q3_SetEnemyTeam( int entID, const char *teamName )
 /*
 ============
 Q3_SetHealth
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int data
 ============
@@ -2398,7 +2385,7 @@ static void Q3_SetHealth( int entID, int data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetHealth: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( data < 0 )
 	{
 		data = 0;
@@ -2419,7 +2406,7 @@ static void Q3_SetHealth( int entID, int data )
 
 	ent->client->ps.stats[STAT_HEALTH] = data;
 	if ( ent->s.number == 0 )
-	{//clamp health to max		
+	{//clamp health to max
 		if ( ent->client->ps.stats[STAT_HEALTH] > ent->client->ps.stats[STAT_MAX_HEALTH] )
 		{
 			ent->health = ent->client->ps.stats[STAT_HEALTH] = ent->client->ps.stats[STAT_MAX_HEALTH];
@@ -2440,8 +2427,8 @@ static void Q3_SetHealth( int entID, int data )
 /*
 ============
 Q3_SetArmor
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int data
 ============
@@ -2455,7 +2442,7 @@ static void Q3_SetArmor( int entID, int data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetArmor: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if(!ent->client)
 	{
 		return;
@@ -2474,11 +2461,11 @@ static void Q3_SetArmor( int entID, int data )
 /*
 ============
 Q3_SetBState
-  Description	: 
-  Return type	: static qboolean 
+  Description	:
+  Return type	: static qboolean
   Argument		:  int entID
   Argument		: const char *bs_name
-FIXME: this should be a general NPC wrapper function 
+FIXME: this should be a general NPC wrapper function
 	that is called ANY time	a bState is changed...
 ============
 */
@@ -2492,7 +2479,7 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetBState: invalid entID %d\n", entID);
 		return qtrue;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetBState: '%s' is not an NPC\n", ent->targetname );
@@ -2505,7 +2492,7 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 		if ( bSID == BS_SEARCH || bSID == BS_WANDER )
 		{
 			//FIXME: Reimplement
-			
+
 			if( ent->waypoint != WAYPOINT_NONE )
 			{
 				NPC_BSSearchStart( ent->waypoint, bSID );
@@ -2533,7 +2520,7 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 				}
 			}
 		}
-		
+
 
 		ent->NPC->tempBehavior = BS_DEFAULT;//need to clear any temp behaviour
 		if ( ent->NPC->behaviorState == BS_NOCLIP && bSID != BS_NOCLIP )
@@ -2602,8 +2589,8 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 /*
 ============
 Q3_SetTempBState
-  Description	: 
-  Return type	: static qboolean 
+  Description	:
+  Return type	: static qboolean
   Argument		:  int entID
   Argument		: const char *bs_name
 ============
@@ -2618,7 +2605,7 @@ static qboolean Q3_SetTempBState( int entID, const char *bs_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetTempBState: invalid entID %d\n", entID);
 		return qtrue;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetTempBState: '%s' is not an NPC\n", ent->targetname );
@@ -2652,8 +2639,8 @@ static qboolean Q3_SetTempBState( int entID, const char *bs_name )
 /*
 ============
 Q3_SetDefaultBState
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: const char *bs_name
 ============
@@ -2668,7 +2655,7 @@ static void Q3_SetDefaultBState( int entID, const char *bs_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetDefaultBState: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetDefaultBState: '%s' is not an NPC\n", ent->targetname );
@@ -2686,8 +2673,8 @@ static void Q3_SetDefaultBState( int entID, const char *bs_name )
 /*
 ============
 Q3_SetDPitch
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2701,13 +2688,13 @@ static void Q3_SetDPitch( int entID, float data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetDPitch: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC || !ent->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetDPitch: '%s' is not an NPC\n", ent->targetname );
 		return;
 	}
-	
+
 	int pitchMin = -ent->client->renderInfo.headPitchRangeUp + 1;
 	int pitchMax = ent->client->renderInfo.headPitchRangeDown - 1;
 
@@ -2737,8 +2724,8 @@ static void Q3_SetDPitch( int entID, float data )
 /*
 ============
 Q3_SetDYaw
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2746,13 +2733,13 @@ Q3_SetDYaw
 static void Q3_SetDYaw( int entID, float data )
 {
 	gentity_t	*ent  = &g_entities[entID];
-	
+
 	if ( !ent )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetDYaw: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetDYaw: '%s' is not an NPC\n", ent->targetname );
@@ -2773,8 +2760,8 @@ static void Q3_SetDYaw( int entID, float data )
 /*
 ============
 Q3_SetShootDist
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2788,7 +2775,7 @@ static void Q3_SetShootDist( int entID, float data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetShootDist: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetShootDist: '%s' is not an NPC\n", ent->targetname );
@@ -2802,8 +2789,8 @@ static void Q3_SetShootDist( int entID, float data )
 /*
 ============
 Q3_SetVisrange
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2817,7 +2804,7 @@ static void Q3_SetVisrange( int entID, float data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetVisrange: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetVisrange: '%s' is not an NPC\n", ent->targetname );
@@ -2831,8 +2818,8 @@ static void Q3_SetVisrange( int entID, float data )
 /*
 ============
 Q3_SetEarshot
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2846,7 +2833,7 @@ static void Q3_SetEarshot( int entID, float data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetEarshot: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetEarshot: '%s' is not an NPC\n", ent->targetname );
@@ -2860,8 +2847,8 @@ static void Q3_SetEarshot( int entID, float data )
 /*
 ============
 Q3_SetVigilance
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2875,7 +2862,7 @@ static void Q3_SetVigilance( int entID, float data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetVigilance: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetVigilance: '%s' is not an NPC\n", ent->targetname );
@@ -2889,8 +2876,8 @@ static void Q3_SetVigilance( int entID, float data )
 /*
 ============
 Q3_SetVFOV
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int data
 ============
@@ -2904,7 +2891,7 @@ static void Q3_SetVFOV( int entID, int data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetVFOV: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetVFOV: '%s' is not an NPC\n", ent->targetname );
@@ -2918,8 +2905,8 @@ static void Q3_SetVFOV( int entID, int data )
 /*
 ============
 Q3_SetHFOV
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int data
 ============
@@ -2933,7 +2920,7 @@ static void Q3_SetHFOV( int entID, int data )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetHFOV: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetHFOV: '%s' is not an NPC\n", ent->targetname );
@@ -2947,8 +2934,8 @@ static void Q3_SetHFOV( int entID, int data )
 /*
 ============
 Q3_SetWidth
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: float data
 ============
@@ -2956,13 +2943,13 @@ Q3_SetWidth
 static void Q3_SetWidth( int entID, int data )
 {
 	gentity_t	*ent  = &g_entities[entID];
-	
+
 	if ( !ent )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWidth: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetWidth: '%s' is not an NPC\n", ent->targetname );
@@ -2976,8 +2963,8 @@ static void Q3_SetWidth( int entID, int data )
 /*
 ============
 Q3_GetTimeScale
-  Description	: 
-  Return type	: static unsigned int 
+  Description	:
+  Return type	: static unsigned int
   Argument		: void
 ============
 */
@@ -2991,8 +2978,8 @@ static unsigned int Q3_GetTimeScale( void )
 /*
 ============
 Q3_SetTimeScale
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: const char *data
 ============
@@ -3006,8 +2993,8 @@ static void Q3_SetTimeScale( int entID, const char *data )
 /*
 ============
 Q3_SetInvisible
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: qboolean invisible
 ============
@@ -3021,7 +3008,7 @@ static void Q3_SetInvisible( int entID, qboolean invisible )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetInvisible: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( invisible )
 	{
 		self->s.eFlags |= EF_NODRAW;
@@ -3044,8 +3031,8 @@ static void Q3_SetInvisible( int entID, qboolean invisible )
 /*
 ============
 Q3_SetVampire
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: qboolean vampire
 ============
@@ -3059,7 +3046,7 @@ static void Q3_SetVampire( int entID, qboolean vampire )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetVampire: entID %d not a client\n", entID);
 		return;
 	}
-	
+
 	if ( vampire )
 	{
 		self->client->ps.powerups[PW_DISINT_2] = Q3_INFINITE;
@@ -3072,8 +3059,8 @@ static void Q3_SetVampire( int entID, qboolean vampire )
 /*
 ============
 Q3_SetGreetAllies
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: qboolean greet
 ============
@@ -3087,7 +3074,7 @@ static void Q3_SetGreetAllies( int entID, qboolean greet )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetGreetAllies: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetGreetAllies: ent %s is not an NPC!\n", self->targetname );
@@ -3107,9 +3094,9 @@ static void Q3_SetGreetAllies( int entID, qboolean greet )
 
 /*
 ============
-Q3_SetViewTarget 
-  Description	: 
-  Return type	: static void 
+Q3_SetViewTarget
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *name
 ============
@@ -3125,26 +3112,26 @@ static void Q3_SetViewTarget (int entID, const char *name)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetViewTarget: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetViewTarget: '%s' is not a player/NPC!\n", self->targetname );
 		return;
 	}
-	
+
 	//FIXME: Exception handle here
 	if (viewtarget == NULL)
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetViewTarget: can't find ViewTarget: '%s'\n", name );
 		return;
 	}
-	
+
 	//FIXME: should we set behavior to BS_FACE and keep facing this ent as it moves
 	//around for a script-specified length of time...?
 	VectorCopy ( self->currentOrigin, selfspot );
 	selfspot[2] += self->client->ps.viewheight;
 
-	if ( viewtarget->client && (!g_skippingcin || !g_skippingcin->integer ) ) 
+	if ( viewtarget->client && (!g_skippingcin || !g_skippingcin->integer ) )
 	{
 		VectorCopy ( viewtarget->client->renderInfo.eyePoint, viewspot );
 	}
@@ -3152,9 +3139,9 @@ static void Q3_SetViewTarget (int entID, const char *name)
 	{
 		VectorCopy ( viewtarget->currentOrigin, viewspot );
 	}
-	
+
 	VectorSubtract( viewspot, selfspot, viewvec );
-	
+
 	vectoangles( viewvec, viewangles );
 
 	Q3_SetDYaw( entID, viewangles[YAW] );
@@ -3167,9 +3154,9 @@ static void Q3_SetViewTarget (int entID, const char *name)
 
 /*
 ============
-Q3_SetWatchTarget 
-  Description	: 
-  Return type	: static void 
+Q3_SetWatchTarget
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *name
 ============
@@ -3184,13 +3171,13 @@ static void Q3_SetWatchTarget (int entID, const char *name)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWatchTarget: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetWatchTarget: '%s' is not an NPC!\n", self->targetname );
 		return;
 	}
-	
+
 	if ( Q_stricmp( "NULL", name ) == 0 || Q_stricmp( "NONE", name ) == 0 || ( self->targetname && (Q_stricmp( self->targetname, name ) == 0) ) )
 	{//clearing watchTarget
 		self->NPC->watchTarget = NULL;
@@ -3202,7 +3189,7 @@ static void Q3_SetWatchTarget (int entID, const char *name)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWatchTarget: can't find WatchTarget: '%s'\n", name );
 		return;
 	}
-	
+
 	self->NPC->watchTarget = watchTarget;
 }
 
@@ -3249,7 +3236,7 @@ void Q3_SetICARUSFreeze( int entID, const char *name, qboolean freeze )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetICARUSFreeze: invalid ent %s\n", name);
 		return;
 	}
-	
+
 	if ( freeze )
 	{
 		self->svFlags |= SVF_ICARUS_FREEZE;
@@ -3263,8 +3250,8 @@ void Q3_SetICARUSFreeze( int entID, const char *name, qboolean freeze )
 /*
 ============
 Q3_SetViewEntity
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *name
 ============
@@ -3287,7 +3274,7 @@ void Q3_SetViewEntity(int entID, const char *name)
 		Q3_DebugPrint( WL_ERROR, "Q3_SetViewEntity: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetViewEntity: '%s' is not a player!\n", self->targetname );
@@ -3299,7 +3286,7 @@ void Q3_SetViewEntity(int entID, const char *name)
 		G_ClearViewEntity( self );
 		return;
 	}
-	
+
 	if ( viewtarget == NULL )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetViewEntity: can't find ViewEntity: '%s'\n", name );
@@ -3311,9 +3298,9 @@ void Q3_SetViewEntity(int entID, const char *name)
 
 /*
 ============
-Q3_SetWeapon 
-  Description	: 
-  Return type	: static void 
+Q3_SetWeapon
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *wp_name
 ============
@@ -3332,7 +3319,7 @@ static void Q3_SetWeapon (int entID, const char *wp_name)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWeapon: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetWeapon: '%s' is not a player/NPC!\n", self->targetname );
@@ -3416,9 +3403,9 @@ static void Q3_SetWeapon (int entID, const char *wp_name)
 
 /*
 ============
-Q3_SetItem 
-  Description	: 
-  Return type	: static void 
+Q3_SetItem
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *wp_name
 ============
@@ -3433,7 +3420,7 @@ static void Q3_SetItem (int entID, const char *item_name)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWeapon: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetWeapon: '%s' is not a player/NPC!\n", self->targetname );
@@ -3442,7 +3429,7 @@ static void Q3_SetItem (int entID, const char *item_name)
 
 	inv = GetIDForString( INVTable, item_name );
 
-	
+
 	gitem_t *item = FindItemForInventory(inv);
 	RegisterItem( item );	//make sure the item is cached in case this runs at startup
 
@@ -3455,7 +3442,7 @@ static void Q3_SetItem (int entID, const char *item_name)
 	{
 		self->client->ps.inventory[inv] = 1;
 		return;
-	} 
+	}
 	// else Bacta, seeker, sentry
 	if( self->client->ps.inventory[inv] < 5 )
 	{
@@ -3467,9 +3454,9 @@ static void Q3_SetItem (int entID, const char *item_name)
 
 /*
 ============
-Q3_SetWalkSpeed 
-  Description	: 
-  Return type	: static void 
+Q3_SetWalkSpeed
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: int int_data
 ============
@@ -3483,7 +3470,7 @@ static void Q3_SetWalkSpeed (int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWalkSpeed: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetWalkSpeed: '%s' is not an NPC!\n", self->targetname );
@@ -3501,9 +3488,9 @@ static void Q3_SetWalkSpeed (int entID, int int_data)
 
 /*
 ============
-Q3_SetRunSpeed 
-  Description	: 
-  Return type	: static void 
+Q3_SetRunSpeed
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: int int_data
 ============
@@ -3517,7 +3504,7 @@ static void Q3_SetRunSpeed (int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetRunSpeed: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetRunSpeed: '%s' is not an NPC!\n", self->targetname );
@@ -3535,9 +3522,9 @@ static void Q3_SetRunSpeed (int entID, int int_data)
 
 /*
 ============
-Q3_SetYawSpeed 
-  Description	: 
-  Return type	: static void 
+Q3_SetYawSpeed
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: float float_data
 ============
@@ -3551,7 +3538,7 @@ static void Q3_SetYawSpeed (int entID, float float_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetYawSpeed: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetYawSpeed: '%s' is not an NPC!\n", self->targetname );
@@ -3565,8 +3552,8 @@ static void Q3_SetYawSpeed (int entID, float float_data)
 /*
 ============
 Q3_SetAggression
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: int int_data
 ============
@@ -3581,7 +3568,7 @@ static void Q3_SetAggression(int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetAggression: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetAggression: '%s' is not an NPC!\n", self->targetname );
@@ -3598,8 +3585,8 @@ static void Q3_SetAggression(int entID, int int_data)
 /*
 ============
 Q3_SetAim
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: int int_data
 ============
@@ -3613,7 +3600,7 @@ static void Q3_SetAim(int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetAim: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetAim: '%s' is not an NPC!\n", self->targetname );
@@ -3630,8 +3617,8 @@ static void Q3_SetAim(int entID, int int_data)
 /*
 ============
 Q3_SetFriction
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: int int_data
 ============
@@ -3645,7 +3632,7 @@ static void Q3_SetFriction(int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetFriction: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetFriction: '%s' is not an NPC/player!\n", self->targetname );
@@ -3659,8 +3646,8 @@ static void Q3_SetFriction(int entID, int int_data)
 /*
 ============
 Q3_SetGravity
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: float float_data
 ============
@@ -3674,7 +3661,7 @@ static void Q3_SetGravity(int entID, float float_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetGravity: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetGravity: '%s' is not an NPC/player!\n", self->targetname );
@@ -3690,8 +3677,8 @@ static void Q3_SetGravity(int entID, float float_data)
 /*
 ============
 Q3_SetWait
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: float float_data
 ============
@@ -3705,7 +3692,7 @@ static void Q3_SetWait(int entID, float float_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetWait: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	self->wait = float_data;
 }
 
@@ -3719,7 +3706,7 @@ static void Q3_SetShotSpacing(int entID, int int_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetShotSpacing: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetShotSpacing: '%s' is not an NPC!\n", self->targetname );
@@ -3733,8 +3720,8 @@ static void Q3_SetShotSpacing(int entID, int int_data)
 /*
 ============
 Q3_SetFollowDist
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: float float_data
 ============
@@ -3748,7 +3735,7 @@ static void Q3_SetFollowDist(int entID, float float_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetFollowDist: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client || !self->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetFollowDist: '%s' is not an NPC!\n", self->targetname );
@@ -3762,8 +3749,8 @@ static void Q3_SetFollowDist(int entID, float float_data)
 /*
 ============
 Q3_SetScale
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: float float_data
 ============
@@ -3777,7 +3764,7 @@ static void Q3_SetScale(int entID, float float_data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetScale: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	self->s.scale = float_data;
 }
 
@@ -3785,8 +3772,8 @@ static void Q3_SetScale(int entID, float float_data)
 /*
 ============
 Q3_SetCount
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *data
 ============
@@ -3802,7 +3789,7 @@ static void Q3_SetCount(int entID, const char *data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetCount: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( (val = Q3_CheckStringCounterIncrement( data )) )
 	{
 		self->count += (int)(val);
@@ -3816,9 +3803,9 @@ static void Q3_SetCount(int entID, const char *data)
 
 /*
 ============
-Q3_SetSquadName 
-  Description	: 
-  Return type	: static void 
+Q3_SetSquadName
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *squadname
 ============
@@ -3833,7 +3820,7 @@ static void Q3_SetSquadName (int entID, const char *squadname)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetSquadName: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !self->client )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetSquadName: '%s' is not an NPC/player!\n", self->targetname );
@@ -3853,9 +3840,9 @@ static void Q3_SetSquadName (int entID, const char *squadname)
 
 /*
 ============
-Q3_SetTargetName 
-  Description	: 
-  Return type	: static void 
+Q3_SetTargetName
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *targetname
 ============
@@ -3890,9 +3877,9 @@ static void Q3_SetTargetName (int entID, const char *targetname)
 
 /*
 ============
-Q3_SetTarget 
-  Description	: 
-  Return type	: static void 
+Q3_SetTarget
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *target
 ============
@@ -3920,8 +3907,8 @@ static void Q3_SetTarget (int entID, const char *target)
 /*
 ============
 Q3_SetTarget2
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *target
 ============
@@ -3947,9 +3934,9 @@ static void Q3_SetTarget2 (int entID, const char *target2)
 }
 /*
 ============
-Q3_SetRemoveTarget 
-  Description	: 
-  Return type	: static void 
+Q3_SetRemoveTarget
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *target
 ============
@@ -3983,9 +3970,9 @@ static void Q3_SetRemoveTarget (int entID, const char *target)
 
 /*
 ============
-Q3_SetPainTarget 
-  Description	: 
-  Return type	: void 
+Q3_SetPainTarget
+  Description	:
+  Return type	: void
   Argument		: int entID
   Argument		: const char *targetname
 ============
@@ -4012,9 +3999,9 @@ static void Q3_SetPainTarget (int entID, const char *targetname)
 
 /*
 ============
-Q3_SetFullName 
-  Description	: 
-  Return type	: static void 
+Q3_SetFullName
+  Description	:
+  Return type	: static void
   Argument		: int entID
   Argument		: const char *fullName
 ============
@@ -4111,8 +4098,8 @@ static void Q3_SetForcePowerLevel ( int entID, int forcePower, int forceLevel )
 /*
 ============
 Q3_SetParm
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: int entID
   Argument		: int parmNum
   Argument		: const char *parmValue
@@ -4178,13 +4165,13 @@ static void Q3_SetCaptureGoal( int entID, const char *name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetCaptureGoal: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetCaptureGoal: '%s' is not an NPC!\n", ent->targetname );
 		return;
 	}
-	
+
 	//FIXME: Exception handle here
 	if (goal == NULL)
 	{
@@ -4220,7 +4207,7 @@ static void Q3_SetEvent( int entID, const char *event_name )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetEvent: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	event = GetIDForString( eventTable, event_name );
 	switch( event )
 	{
@@ -4260,7 +4247,7 @@ Uses an entity
 static void Q3_Use( int entID, const char *target )
 {
 	gentity_t	*ent  = &g_entities[entID];
-	
+
 	if ( !ent )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_Use: invalid entID %d\n", entID);
@@ -4367,7 +4354,7 @@ static qboolean Q3_SetBehaviorSet( int entID, int toSet, const char *scriptname)
 			{
 //				gi.TagFree( ent->behaviorSet[bSet] );
 			}
-			
+
 			ent->behaviorSet[bSet] = G_NewString( (char *) scriptname );	//FIXME: This really isn't good...
 		}
 
@@ -4397,7 +4384,7 @@ static void Q3_SetDelayScriptTime(int entID, int delayTime)
 	ent->delayScriptTime = level.time + delayTime;
 }
 
-	
+
 /*
 ============
 Q3_SetIgnorePain
@@ -4414,7 +4401,7 @@ static void Q3_SetIgnorePain( int entID, qboolean data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetIgnorePain: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetIgnorePain: '%s' is not an NPC!\n", ent->targetname );
@@ -4440,7 +4427,7 @@ static void Q3_SetIgnoreEnemies( int entID, qboolean data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetIgnoreEnemies: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetIgnoreEnemies: '%s' is not an NPC!\n", ent->targetname );
@@ -4473,7 +4460,7 @@ static void Q3_SetIgnoreAlerts( int entID, qboolean data)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetIgnoreAlerts: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetIgnoreAlerts: '%s' is not an NPC!\n", ent->targetname );
@@ -4557,7 +4544,7 @@ static void Q3_SetDontFire( int entID, qboolean add)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetDontFire: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetDontFire: '%s' is not an NPC!\n", ent->targetname );
@@ -4590,7 +4577,7 @@ static void Q3_SetFireWeapon(int entID, qboolean add)
 		Q3_DebugPrint( WL_WARNING, "Q3_FireWeapon: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if ( !ent->NPC )
 	{
 		Q3_DebugPrint( WL_ERROR, "Q3_SetFireWeapon: '%s' is not an NPC!\n", ent->targetname );
@@ -4624,7 +4611,7 @@ static void Q3_SetInactive(int entID, qboolean add)
 		Q3_DebugPrint( WL_WARNING, "Q3_SetInactive: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	if(add)
 	{
 		ent->svFlags |= SVF_INACTIVE;
@@ -4651,7 +4638,7 @@ static void Q3_SetFuncUsableVisible(int entID, qboolean visible )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetFuncUsableVisible: invalid entID %d\n", entID);
 		return;
 	}
-	
+
 	// Yeah, I know that this doesn't even do half of what the func_usable use code does, but if I've got two things on top of each other...and only
 	//	one is visible at a time....and neither can ever be used......and finally, the shader on it has the shader_anim stuff going on....It doesn't seem
 	//	like I can easily use the other version without nasty side effects.
@@ -4689,7 +4676,7 @@ static void Q3_SetLockedEnemy ( int entID, qboolean locked)
 		Q3_DebugPrint( WL_ERROR, "Q3_SetLockedEnemy: '%s' is not an NPC!\n", ent->targetname );
 		return;
 	}
-	
+
 	//FIXME: make an NPCAI_FLAG
 	if(locked)
 	{
@@ -4720,7 +4707,7 @@ static void Q3_SetCinematicSkipScript( char *scriptname )
 	{
 		Q_strncpyz(cinematicSkipScript,scriptname,sizeof(cinematicSkipScript));
 	}
-	
+
 }
 
 /*
@@ -4892,7 +4879,7 @@ static void Q3_SetForcedMarch( int entID, qboolean add)
 ============
 Q3_SetChaseEnemies
 
-indicates whether the npc should chase after an enemy 
+indicates whether the npc should chase after an enemy
 ============
 */
 static void Q3_SetChaseEnemies( int entID, qboolean add)
@@ -5343,7 +5330,7 @@ static void Q3_SetDismemberable( int entID, qboolean dismemberable)
 		return;
 	}
 
-	ent->client->dismembered = !dismemberable;
+	ent->client->dismembered = (qboolean)(!dismemberable);
 }
 
 
@@ -5436,7 +5423,7 @@ static void Q3_SetInvincible( int entID, qboolean invincible)
 		}
 		return;
 	}
-	
+
 	if ( invincible )
 	{
 		ent->flags |= FL_GODMODE;
@@ -5449,8 +5436,8 @@ static void Q3_SetInvincible( int entID, qboolean invincible)
 /*
 ============
 Q3_SetForceInvincible
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: qboolean forceInv
 ============
@@ -5464,7 +5451,7 @@ static void Q3_SetForceInvincible( int entID, qboolean forceInv )
 		Q3_DebugPrint( WL_WARNING, "Q3_SetForceInvincible: entID %d not a client\n", entID);
 		return;
 	}
-	
+
 	Q3_SetInvincible( entID, forceInv );
 	if ( forceInv )
 	{
@@ -5512,8 +5499,8 @@ static void Q3_SetNoAvoid( int entID, qboolean noAvoid)
 /*
 ============
 SolidifyOwner
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *self
 ============
 */
@@ -5555,7 +5542,7 @@ Q3_SetSolid
 static qboolean Q3_SetSolid( int entID, qboolean solid)
 {
 	gentity_t	*ent  = &g_entities[entID];
-	
+
 	if ( !ent )
 	{
 		Q3_DebugPrint( WL_WARNING, "Q3_SetSolid: invalid entID %d\n", entID);
@@ -5574,7 +5561,7 @@ static qboolean Q3_SetSolid( int entID, qboolean solid)
 
 			solidifier->e_ThinkFunc = thinkF_SolidifyOwner;
 			solidifier->nextthink = level.time + FRAMETIME;
-			
+
 			ent->contents = oldContents;
 			return qfalse;
 		}
@@ -5726,7 +5713,7 @@ static void Q3_SetLockAngle( int entID, const char *lockAngle)
 	{
 		ent->client->renderInfo.renderFlags |= RF_LOCKEDANGLE;
 
-		
+
 		if(Q_stricmp("auto", lockAngle) == 0)
 		{//use current yaw
 			if( ent->NPC )	// I need this to work on NPCs, so their locked value
@@ -5825,7 +5812,7 @@ static void Q3_AddRHandModel( int entID, char *addModel)
 	if ( ent->cinematicModel != -1 )
 	{
 		// attach it to the hand
-		gi.G2API_AttachG2Model(&ent->ghoul2[ent->cinematicModel], &ent->ghoul2[ent->playerModel], 
+		gi.G2API_AttachG2Model(&ent->ghoul2[ent->cinematicModel], &ent->ghoul2[ent->playerModel],
 					ent->handRBolt, ent->playerModel);
 	}
 }
@@ -5843,7 +5830,7 @@ static void Q3_AddLHandModel( int entID, char *addModel)
 	if ( ent->cinematicModel != -1 )
 	{
 		// attach it to the hand
-		gi.G2API_AttachG2Model(&ent->ghoul2[ent->cinematicModel], &ent->ghoul2[ent->playerModel], 
+		gi.G2API_AttachG2Model(&ent->ghoul2[ent->cinematicModel], &ent->ghoul2[ent->playerModel],
 					ent->handLBolt, ent->playerModel);
 	}
 }
@@ -5924,7 +5911,7 @@ static void Q3_Face( int entID,int expression, float holdtime)
 		Q3_DebugPrint( WL_ERROR, "Q3_Face: '%s' is not an NPC/player!\n", ent->targetname );
 		return;
 	}
-	
+
 	//FIXME: change to milliseconds to be consistant!
 	holdtime *= 1000;
 
@@ -5976,8 +5963,8 @@ static void Q3_Face( int entID,int expression, float holdtime)
 /*
 ============
 Q3_SetPlayerUsable
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean usable
 ============
@@ -6005,8 +5992,8 @@ static void Q3_SetPlayerUsable( int entID, qboolean usable )
 /*
 ============
 Q3_SetDisableShaderAnims
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int disabled
 ============
@@ -6034,8 +6021,8 @@ static void Q3_SetDisableShaderAnims( int entID, int disabled )
 /*
 ============
 Q3_SetShaderAnim
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int disabled
 ============
@@ -6063,8 +6050,8 @@ static void Q3_SetShaderAnim( int entID, int disabled )
 /*
 ============
 Q3_SetStartFrame
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int startFrame
 ============
@@ -6096,8 +6083,8 @@ static void Q3_SetStartFrame( int entID, int startFrame )
 /*
 ============
 Q3_SetEndFrame
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int endFrame
 ============
@@ -6127,8 +6114,8 @@ static void Q3_SetEndFrame( int entID, int endFrame )
 /*
 ============
 Q3_SetAnimFrame
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int entID
   Argument		: int startFrame
 ============
@@ -6198,8 +6185,8 @@ void InflateOwner( gentity_t *self )
 /*
 ============
 Q3_SetLoopAnim
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean loopAnim
 ============
@@ -6227,8 +6214,8 @@ static void Q3_SetLoopAnim( int entID, qboolean loopAnim )
 /*
 ============
 Q3_SetShields
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean shields
 ============
@@ -6262,8 +6249,8 @@ static void Q3_SetShields( int entID, qboolean shields )
 /*
 ============
 Q3_SetSaberActive
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean shields
 ============
@@ -6296,8 +6283,8 @@ static void Q3_SetSaberActive( int entID, qboolean active )
 /*
 ============
 Q3_SetNoKnockback
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean noKnockback
 ============
@@ -6325,8 +6312,8 @@ static void Q3_SetNoKnockback( int entID, qboolean noKnockback )
 /*
 ============
 Q3_SetCleanDamagingEnts
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
 ============
 */
 static void Q3_SetCleanDamagingEnts( void )
@@ -6367,8 +6354,8 @@ static void Q3_SetCleanDamagingEnts( void )
 /*
 ============
 Q3_SetInterface
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: const char *data
 ============
@@ -6381,8 +6368,8 @@ static void Q3_SetInterface( int entID, const char *data )
 /*
 ============
 Q3_SetLocation
-  Description	: 
-  Return type	: qboolean 
+  Description	:
+  Return type	: qboolean
   Argument		:  int entID
   Argument		: const char *location
 ============
@@ -6391,7 +6378,7 @@ static qboolean Q3_SetLocation( int entID, const char *location )
 {
 	gentity_t	*ent = &g_entities[entID];
 	char		*currentLoc;
-	
+
 	if ( !ent )
 	{
 		return qtrue;
@@ -6410,8 +6397,8 @@ static qboolean Q3_SetLocation( int entID, const char *location )
 /*
 ============
 Q3_SetPlayerLocked
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean locked
 ============
@@ -6431,8 +6418,8 @@ static void Q3_SetPlayerLocked( int entID, qboolean locked )
 /*
 ============
 Q3_SetLockPlayerWeapons
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean locked
 ============
@@ -6447,15 +6434,15 @@ static void Q3_SetLockPlayerWeapons( int entID, qboolean locked )
 	{
 		ent->flags |= FL_LOCK_PLAYER_WEAPONS;
 	}
-	
+
 }
 
 
 /*
 ============
 Q3_SetNoImpactDamage
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: qboolean locked
 ============
@@ -6470,7 +6457,7 @@ static void Q3_SetNoImpactDamage( int entID, qboolean noImp )
 	{
 		ent->flags |= FL_NO_IMPACT_DMG;
 	}
-	
+
 }
 
 extern void CG_CameraAutoAim( const char *name );
@@ -6479,8 +6466,8 @@ extern void CG_CameraAutoTrack( const char *name );
 /*
 ============
 Q3_SetVar
-  Description	: 
-  Return type	: static void 
+  Description	:
+  Return type	: static void
   Argument		:  int taskID
   Argument		: int entID
   Argument		: const char *type_name
@@ -6493,7 +6480,7 @@ void Q3_SetVar( int taskID, int entID, const char *type_name, const char *data )
 	float	float_data;
 	float	val = 0.0f;
 
-	
+
 	if ( vret != VTYPE_NONE )
 	{
 		switch ( vret )
@@ -6531,8 +6518,8 @@ void Q3_SetVar( int taskID, int entID, const char *type_name, const char *data )
 /*
 ============
 Q3_Set
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int taskID
   Argument		: int entID
   Argument		: const char *type_name
@@ -6546,11 +6533,10 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 	int			int_data, toSet;
 	vec3_t		vector_data;
 
-	// eezstreet: In response to issue #75 (Cvars being affected by set command)
-	if( !Q_stricmpn(type_name, "cvar_", 5) &&
-		strlen(type_name) > 5 )
+	// eezstreet: Add support for cvars getting modified thru ICARUS script
+	if(strlen(type_name) > 5 && !Q_stricmpn(type_name, "cvar_", 5))
 	{
-		cgi_Cvar_Set(type_name+5, data);
+		gi.cvar_set(type_name+5, data);
 		return;
 	}
 
@@ -6594,7 +6580,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		float_data = atof((char *) data);
 		Q3_SetVelocity( entID, 0, float_data);
 		break;
-	
+
 	case SET_YVELOCITY:
 		float_data = atof((char *) data);
 		Q3_SetVelocity( entID, 1, float_data);
@@ -6673,7 +6659,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 			}
 		}
 		break;
-	
+
 	case SET_ANIM_HOLDTIME_LOWER:
 		int_data = atoi((char *) data);
 		Q3_SetAnimHoldTime( entID, int_data, qtrue );
@@ -6780,7 +6766,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 
 	case SET_ICARUS_FREEZE:
 	case SET_ICARUS_UNFREEZE:
-		Q3_SetICARUSFreeze( entID, (char *) data, (toSet==SET_ICARUS_FREEZE) );
+		Q3_SetICARUSFreeze( entID, (char *) data, (qboolean)(toSet == SET_ICARUS_FREEZE) );
 		break;
 
 	case SET_WEAPON:
@@ -6876,14 +6862,14 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		else if(!Q_stricmp("false", ((char *)data)))
 			Q3_SetIgnoreAlerts( entID, qfalse);
 		break;
-		
+
 	case SET_DONTSHOOT:
 		if(!Q_stricmp("true", ((char *)data)))
 			Q3_SetDontShoot( entID, qtrue);
 		else if(!Q_stricmp("false", ((char *)data)))
 			Q3_SetDontShoot( entID, qfalse);
 		break;
-	
+
 	case SET_DONTFIRE:
 		if(!Q_stricmp("true", ((char *)data)))
 			Q3_SetDontFire( entID, qtrue);
@@ -6927,17 +6913,17 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		float_data = atof((char *) data);
 		Q3_SetVisrange( entID, float_data );
 		break;
-	
+
 	case SET_EARSHOT:
 		float_data = atof((char *) data);
 		Q3_SetEarshot( entID, float_data );
 		break;
-	
+
 	case SET_VIGILANCE:
 		float_data = atof((char *) data);
 		Q3_SetVigilance( entID, float_data );
 		break;
-	
+
 	case SET_VFOV:
 		int_data = atoi((char *) data);
 		Q3_SetVFOV( entID, int_data );
@@ -6959,7 +6945,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 	case SET_TARGET2:
 		Q3_SetTarget2( entID, (char *) data );
 		break;
-	
+
 	case SET_LOCATION:
 		if ( !Q3_SetLocation( entID, (char *) data ) )
 		{
@@ -7040,128 +7026,128 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 
 	case SET_WALKING:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetWalking( entID, qtrue);	
+			Q3_SetWalking( entID, qtrue);
 		else
-			Q3_SetWalking( entID, qfalse);	
+			Q3_SetWalking( entID, qfalse);
 		break;
 
 	case SET_RUNNING:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetRunning( entID, qtrue);	
+			Q3_SetRunning( entID, qtrue);
 		else
-			Q3_SetRunning( entID, qfalse);	
+			Q3_SetRunning( entID, qfalse);
 		break;
 
 	case SET_CHASE_ENEMIES:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetChaseEnemies( entID, qtrue);	
+			Q3_SetChaseEnemies( entID, qtrue);
 		else
-			Q3_SetChaseEnemies( entID, qfalse);	
+			Q3_SetChaseEnemies( entID, qfalse);
 		break;
 
 	case SET_LOOK_FOR_ENEMIES:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetLookForEnemies( entID, qtrue);	
+			Q3_SetLookForEnemies( entID, qtrue);
 		else
-			Q3_SetLookForEnemies( entID, qfalse);	
+			Q3_SetLookForEnemies( entID, qfalse);
 		break;
 
 	case SET_FACE_MOVE_DIR:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetFaceMoveDir( entID, qtrue);	
+			Q3_SetFaceMoveDir( entID, qtrue);
 		else
-			Q3_SetFaceMoveDir( entID, qfalse);	
+			Q3_SetFaceMoveDir( entID, qfalse);
 		break;
 
 	case SET_ALT_FIRE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetAltFire( entID, qtrue);	
+			Q3_SetAltFire( entID, qtrue);
 		else
-			Q3_SetAltFire( entID, qfalse);	
+			Q3_SetAltFire( entID, qfalse);
 		break;
 
 	case SET_DONT_FLEE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetDontFlee( entID, qtrue);	
+			Q3_SetDontFlee( entID, qtrue);
 		else
-			Q3_SetDontFlee( entID, qfalse);	
+			Q3_SetDontFlee( entID, qfalse);
 		break;
 
 	case SET_FORCED_MARCH:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetForcedMarch( entID, qtrue);	
+			Q3_SetForcedMarch( entID, qtrue);
 		else
-			Q3_SetForcedMarch( entID, qfalse);	
+			Q3_SetForcedMarch( entID, qfalse);
 		break;
 
 	case SET_NO_RESPONSE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetNoResponse( entID, qtrue);	
+			Q3_SetNoResponse( entID, qtrue);
 		else
-			Q3_SetNoResponse( entID, qfalse);	
+			Q3_SetNoResponse( entID, qfalse);
 		break;
 
 	case SET_NO_COMBAT_TALK:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetCombatTalk( entID, qtrue);	
+			Q3_SetCombatTalk( entID, qtrue);
 		else
-			Q3_SetCombatTalk( entID, qfalse);	
+			Q3_SetCombatTalk( entID, qfalse);
 		break;
 
 	case SET_NO_ALERT_TALK:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetAlertTalk( entID, qtrue);	
+			Q3_SetAlertTalk( entID, qtrue);
 		else
-			Q3_SetAlertTalk( entID, qfalse);	
+			Q3_SetAlertTalk( entID, qfalse);
 		break;
 
 	case SET_USE_CP_NEAREST:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetUseCpNearest( entID, qtrue);	
+			Q3_SetUseCpNearest( entID, qtrue);
 		else
-			Q3_SetUseCpNearest( entID, qfalse);	
+			Q3_SetUseCpNearest( entID, qfalse);
 		break;
 
 	case SET_NO_FORCE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetNoForce( entID, qtrue);	
+			Q3_SetNoForce( entID, qtrue);
 		else
-			Q3_SetNoForce( entID, qfalse);	
+			Q3_SetNoForce( entID, qfalse);
 		break;
 
 	case SET_NO_ACROBATICS:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetNoAcrobatics( entID, qtrue);	
+			Q3_SetNoAcrobatics( entID, qtrue);
 		else
-			Q3_SetNoAcrobatics( entID, qfalse);	
+			Q3_SetNoAcrobatics( entID, qfalse);
 		break;
 
 	case SET_USE_SUBTITLES:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetUseSubtitles( entID, qtrue);	
+			Q3_SetUseSubtitles( entID, qtrue);
 		else
-			Q3_SetUseSubtitles( entID, qfalse);	
+			Q3_SetUseSubtitles( entID, qfalse);
 		break;
 
 	case SET_NO_FALLTODEATH:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetNoFallToDeath( entID, qtrue);	
+			Q3_SetNoFallToDeath( entID, qtrue);
 		else
-			Q3_SetNoFallToDeath( entID, qfalse);	
+			Q3_SetNoFallToDeath( entID, qfalse);
 		break;
 
 	case SET_DISMEMBERABLE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetDismemberable( entID, qtrue);	
+			Q3_SetDismemberable( entID, qtrue);
 		else
-			Q3_SetDismemberable( entID, qfalse);	
+			Q3_SetDismemberable( entID, qfalse);
 		break;
 
 	case SET_MORELIGHT:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetMoreLight( entID, qtrue);	
+			Q3_SetMoreLight( entID, qtrue);
 		else
-			Q3_SetMoreLight( entID, qfalse);	
+			Q3_SetMoreLight( entID, qfalse);
 		break;
 
 
@@ -7175,23 +7161,23 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 
 	case SET_UNDYING:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetUndying( entID, qtrue);	
+			Q3_SetUndying( entID, qtrue);
 		else
-			Q3_SetUndying( entID, qfalse);	
+			Q3_SetUndying( entID, qfalse);
 		break;
 
 	case SET_INVINCIBLE:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetInvincible( entID, qtrue);	
+			Q3_SetInvincible( entID, qtrue);
 		else
-			Q3_SetInvincible( entID, qfalse);	
+			Q3_SetInvincible( entID, qfalse);
 		break;
 
 	case SET_NOAVOID:
 		if(!Q_stricmp("true", ((char *)data)))
-			Q3_SetNoAvoid( entID, qtrue);	
+			Q3_SetNoAvoid( entID, qtrue);
 		else
-			Q3_SetNoAvoid( entID, qfalse);	
+			Q3_SetNoAvoid( entID, qfalse);
 		break;
 
 	case SET_SOLID:
@@ -7243,7 +7229,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		else
 			Q3_SetPlayerLocked( entID, qfalse );
 		break;
-		
+
 	case SET_LOCK_PLAYER_WEAPONS:
 		if( !Q_stricmp("true", ((char *)data)) )
 			Q3_SetLockPlayerWeapons( entID, qtrue );
@@ -7260,18 +7246,18 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 
 	case SET_FORWARDMOVE:
 		int_data = atoi((char *) data);
-		Q3_SetForwardMove( entID, int_data);	
+		Q3_SetForwardMove( entID, int_data);
 		break;
 
 	case SET_RIGHTMOVE:
 		int_data = atoi((char *) data);
-		Q3_SetRightMove( entID, int_data);	
+		Q3_SetRightMove( entID, int_data);
 		break;
 
 	case SET_LOCKYAW:
-		Q3_SetLockAngle( entID, data);	
+		Q3_SetLockAngle( entID, data);
 		break;
-	
+
 	case SET_CAMERA_GROUP:
 		Q3_CameraGroup(entID, (char *)data);
 		break;
@@ -7316,21 +7302,21 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		break;
 
 	case SET_SCROLLTEXT:
-		Q3_ScrollText( (char *)data );	
+		Q3_ScrollText( (char *)data );
 		break;
 
 	case SET_LCARSTEXT:
-		Q3_LCARSText( (char *)data );	
+		Q3_LCARSText( (char *)data );
 		break;
 
 	case SET_CAPTIONTEXTCOLOR:
-		Q3_SetCaptionTextColor ( (char *)data );	
+		Q3_SetCaptionTextColor ( (char *)data );
 		break;
 	case SET_CENTERTEXTCOLOR:
-		Q3_SetCenterTextColor ( (char *)data );	
+		Q3_SetCenterTextColor ( (char *)data );
 		break;
 	case SET_SCROLLTEXTCOLOR:
-		Q3_SetScrollTextColor ( (char *)data );	
+		Q3_SetScrollTextColor ( (char *)data );
 		break;
 
 	case SET_PLAYER_USABLE:
@@ -7348,7 +7334,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		int_data = atoi((char *) data);
 		Q3_SetStartFrame(entID, int_data);
 		break;
-	
+
 	case SET_ENDFRAME:
 		int_data = atoi((char *) data);
 		Q3_SetEndFrame(entID, int_data);
@@ -7362,7 +7348,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 		Q3_SetAnimFrame(entID, int_data);
 		return;
 		break;
-		
+
 	case SET_LOOP_ANIM:
 		if(!Q_stricmp("true", ((char *)data)))
 		{
@@ -7396,7 +7382,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 			Q3_SetShields(entID, qfalse);
 		}
 		break;
-	
+
 	case SET_SABERACTIVE:
 		if(!Q_stricmp("true", ((char *)data)))
 		{
@@ -7418,7 +7404,7 @@ static void Q3_Set( int taskID, int entID, const char *type_name, const char *da
 			Q3_SetAdjustAreaPortals( entID, qfalse );
 		}
 		break;
-	
+
 	case SET_DMG_BY_HEAVY_WEAP_ONLY:
 		if(!Q_stricmp("true", ((char *)data)))
 		{
@@ -7560,7 +7546,7 @@ extern void LockDoors(gentity_t *const ent);
 
 	case SET_OBJECTIVE_SHOW:
 		missionInfo_Updated = qtrue;	// Activate flashing text
-		gi.cvar_set("cg_updatedDataPadObjective", "1"); 
+		gi.cvar_set("cg_updatedDataPadObjective", "1");
 
 		Q3_SetObjective((const char *) data ,SET_OBJ_SHOW);
 		Q3_SetObjective((const char *) data ,SET_OBJ_PENDING);
@@ -7570,7 +7556,7 @@ extern void LockDoors(gentity_t *const ent);
 		break;
 	case SET_OBJECTIVE_SUCCEEDED:
 		missionInfo_Updated = qtrue;	// Activate flashing text
-		gi.cvar_set("cg_updatedDataPadObjective", "1"); 
+		gi.cvar_set("cg_updatedDataPadObjective", "1");
 		Q3_SetObjective((const char *) data ,SET_OBJ_SUCCEEDED);
 		break;
 	case SET_OBJECTIVE_FAILED:
@@ -7588,7 +7574,7 @@ extern void LockDoors(gentity_t *const ent);
 	case SET_MISSIONSTATUSTEXT:
 		Q3_SetStatusText((const char *) data);
 		break;
-		
+
 	case SET_MISSIONSTATUSTIME:
 		int_data = atoi((char *) data);
 		cg.missionStatusDeadTime = level.time + int_data;
@@ -7661,7 +7647,7 @@ extern void LockDoors(gentity_t *const ent);
 		int_data = atoi((char *) data);
 		Q3_SetForcePowerLevel( entID, (toSet-SET_FORCE_HEAL_LEVEL), int_data );
 		break;
-	
+
 	default:
 		//Q3_DebugPrint( WL_ERROR, "Q3_Set: '%s' is not a valid set field\n", type_name );
 		Q3_SetVar( taskID, entID, type_name, data );
@@ -7676,8 +7662,8 @@ extern void LockDoors(gentity_t *const ent);
 /*
 ============
 Q3_Kill
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: const char *name
 ============
@@ -7736,8 +7722,8 @@ static void Q3_Kill( int entID, const char *name )
 /*
 ============
 Q3_RemoveEnt
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *victim
 ============
 */
@@ -7783,8 +7769,8 @@ static void Q3_RemoveEnt( gentity_t *victim )
 /*
 ============
 Q3_Remove
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		:  int entID
   Argument		: const char *name
 ============
@@ -7834,8 +7820,8 @@ static void Q3_Remove( int entID, const char *name )
 /*
 ============
 MakeOwnerInvis
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *self
 ============
 */
@@ -7855,8 +7841,8 @@ void MakeOwnerInvis(gentity_t *self)
 /*
 ============
 MakeOwnerEnergy
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *self
 ============
 */
@@ -7873,8 +7859,8 @@ void MakeOwnerEnergy(gentity_t *self)
 /*
 ============
 RemoveOwner
-  Description	: 
-  Return type	: void 
+  Description	:
+  Return type	: void
   Argument		: gentity_t *self
 ============
 */
@@ -7899,8 +7885,8 @@ void RemoveOwner (gentity_t *self)
 /*
 ============
 Q3_GetFloat
-  Description	: 
-  Return type	: int 
+  Description	:
+  Return type	: int
   Argument		:  int entID
   Argument		: int type
   Argument		: const char *name
@@ -7917,8 +7903,7 @@ static int Q3_GetFloat( int entID, int type, const char *name, float *value )
 		return false;
 	}
 
-	if( !Q_stricmpn(name, "cvar_", 5) &&
-		strlen(name) > 5 )
+	if( strlen(name) > 5 && !Q_stricmpn(name, "cvar_", 5) )
 	{
 		*value = (float)gi.Cvar_VariableIntegerValue(name+5);
 		return true;
@@ -7953,7 +7938,7 @@ static int Q3_GetFloat( int entID, int type, const char *name, float *value )
 		}
 		*value = atof( ent->parms->parm[toGet - SET_PARM1] );
 		break;
-	
+
 	case SET_COUNT:
 		*value = ent->count;
 		break;
@@ -8528,8 +8513,8 @@ static int Q3_GetFloat( int entID, int type, const char *name, float *value )
 /*
 ============
 Q3_GetVector
-  Description	: 
-  Return type	: int 
+  Description	:
+  Return type	: int
   Argument		:  int entID
   Argument		: int type
   Argument		: const char *name
@@ -8576,7 +8561,7 @@ static int Q3_GetVector( int entID, int type, const char *name, vec3_t value )
 	case SET_ANGLES:
 		VectorCopy(ent->currentAngles, value);
 		break;
-	
+
 	case SET_TELEPORT_DEST://## %v="0.0 0.0 0.0" # Set origin here as soon as the area is clear
 		Q3_DebugPrint( WL_WARNING, "Q3_GetVector: SET_TELEPORT_DEST not implemented\n" );
 		return false;
@@ -8596,8 +8581,8 @@ static int Q3_GetVector( int entID, int type, const char *name, vec3_t value )
 /*
 ============
 Q3_GetString
-  Description	: 
-  Return type	: int 
+  Description	:
+  Return type	: int
   Argument		:  int entID
   Argument		: int type
   Argument		: const char *name
@@ -8612,10 +8597,16 @@ static int Q3_GetString( int entID, int type, const char *name, char **value )
 		return false;
 	}
 
-	if( !Q_stricmpn(name, "cvar_", 5) &&
-		strlen(name) > 5 )
+	if( strlen(name) > 5 && !Q_stricmpn(name, "cvar_", 5) )
 	{
-		gi.Cvar_VariableStringBuffer(name+5, *value, strlen(*value));
+		const char* cvar_name = name + 5;
+		// by allocating and then re-using the same sufficiently large buffer,
+		// we ensure that pointers to it never become invalid,
+		// so we can support expressions using the same cvar twice,
+		// e.g. if(get(cvar_x) == get(cvar_x))
+		std::array<char, MAX_STRING_CHARS>& buf = ICARUS_CvarList[cvar_name];
+		gi.Cvar_VariableStringBuffer(cvar_name, buf.data(), buf.size());
+		*value = buf.data();
 		return true;
 	}
 
@@ -8626,7 +8617,7 @@ static int Q3_GetString( int entID, int type, const char *name, char **value )
 	case SET_ANIM_BOTH:
 		*value = (char *) Q3_GetAnimBoth( ent );
 
-		if ( VALIDSTRING( value ) == false )
+		if ( VALIDSTRING( *value ) == false )
 			return false;
 
 		break;
@@ -8890,8 +8881,8 @@ static int Q3_GetString( int entID, int type, const char *name, char **value )
 /*
 ============
 Q3_Evaluate
-  Description	: 
-  Return type	: int 
+  Description	:
+  Return type	: int
   Argument		:  int p1Type
   Argument		: const char *p1
   Argument		: int p2Type
@@ -9087,7 +9078,7 @@ static int Q3_Evaluate( int p1Type, const char *p1, int p2Type, const char *p2, 
 		}
 
 		break;
-	
+
 	default:
 		Q3_DebugPrint( WL_ERROR, "Q3_Evaluate unknown operator used!\n");
 		break;
@@ -9152,11 +9143,11 @@ void Q3_DebugPrint( int level, const char *format, ... )
 		case WL_ERROR:
 			Com_Printf ( S_COLOR_RED"ERROR: %s", text );
 			break;
-		
+
 		case WL_WARNING:
 			Com_Printf ( S_COLOR_YELLOW"WARNING: %s", text );
 			break;
-		
+
 		case WL_DEBUG:
 			{
 				int		entNum;
@@ -9211,7 +9202,7 @@ static void Q3_Play( int taskID, int entID, const char *type, const char *name )
 			// These need to be initialised up front...
 			VectorCopy( ent->currentOrigin, ent->pos1 );
 			VectorCopy( ent->currentAngles, ent->pos2 );
-			
+
 			gi.linkentity( ent );
 		}
 	}
@@ -9221,7 +9212,7 @@ static void Q3_Play( int taskID, int entID, const char *type, const char *name )
 ============
 Interface_Init
   Description	: Inits the interface for the game
-  Return type	: void 
+  Return type	: void
   Argument		: interface_export_t *pe
 ============
 */
@@ -9242,7 +9233,7 @@ void Interface_Init( interface_export_t *pe )
 	pe->I_Lerp2Angles			=	Q3_Lerp2Angles;
 	pe->I_GetTag				=	Q3_GetTag;
 	pe->I_Lerp2Start			=	Q3_Lerp2Start;
-	pe->I_Lerp2End				=	Q3_Lerp2End;	
+	pe->I_Lerp2End				=	Q3_Lerp2End;
 	pe->I_Use					=	Q3_Use;
 	pe->I_Kill					=	Q3_Kill;
 	pe->I_Remove				=	Q3_Remove;
@@ -9275,9 +9266,8 @@ void Interface_Init( interface_export_t *pe )
 	pe->I_FreeVariable			=	Q3_FreeVariable;
 
 	//Save / Load functions
-	pe->I_WriteSaveData			=	(int(*)(unsigned int, void *, int))gi.AppendToSaveGame;
-	pe->I_ReadSaveData			=	gi.ReadFromSaveGame;
 	pe->I_LinkEntity			=	ICARUS_LinkEntity;
+	pe->saved_game = gi.saved_game;
 
 	gclient_t	*client;
 	client = &level.clients[0];

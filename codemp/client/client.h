@@ -223,6 +223,10 @@ typedef struct clientConnection_s {
 	int			downloadSize;	// how many bytes we got
 	char		downloadList[MAX_INFO_STRING]; // list of paks we need to download
 	qboolean	downloadRestart;	// if true, we need to do another FS_Restart because we downloaded a pak
+	qboolean	downloadMenuActive;
+	qboolean	downloadWaitingOnUser;
+	qboolean	downloadFinished;
+	int			downloadTime;
 
 	// demo information
 	char		demoName[MAX_QPATH];
@@ -326,21 +330,43 @@ typedef struct clientStatic_s {
 	qhandle_t	charSetShader;
 	qhandle_t	whiteShader;
 	qhandle_t	consoleShader;
+	int			consoleFont;
+
+	// Cursor
+	qboolean	cursorActive;
+	qhandle_t	cursorShader;
+	int			cursorX;
+	int			cursorY;
+
+	// Engine menu
+	int			menuFont;
 } clientStatic_t;
 
 #define	CON_TEXTSIZE	0x30000 //was 32768
 #define	NUM_CON_TIMES	4
 
-typedef struct console_s {
+typedef union {
+	struct {
+		unsigned char	color;
+		char			character;
+	} f;
+	unsigned short	compare;
+} conChar_t;
+
+typedef struct {
 	qboolean	initialized;
 
-	short	text[CON_TEXTSIZE];
+	conChar_t	text[CON_TEXTSIZE];
 	int		current;		// line where next message will be printed
 	int		x;				// offset in current line for next print
 	int		display;		// bottom of console displays this line
 
 	int 	linewidth;		// characters across screen
+	int		rowwidth;		// timestamp, text and line wrap character
 	int		totallines;		// total lines in console scrollback
+
+	int		charWidth;		// Scaled console character width
+	int		charHeight;		// Scaled console character height
 
 	float	xadjust;		// for wide aspect screens
 	float	yadjust;		// for wide aspect screens
@@ -409,8 +435,12 @@ extern	cvar_t	*cl_conXOffset;
 extern	cvar_t	*cl_inGameVideo;
 
 extern	cvar_t	*cl_consoleKeys;
+extern	cvar_t	*cl_consoleUseScanCode;
+extern	cvar_t	*cl_consoleShiftRequirement;
 
 extern  cvar_t  *cl_lanForcePackets;
+
+extern	cvar_t	*cl_drawRecording;
 
 //=================================================
 
@@ -453,6 +483,10 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 
 qboolean CL_CheckPaused(void);
 
+void CL_DrawEngineMenus( void );
+void CL_UpdateCursorPosition( int dx, int dy );
+void CL_CursorButton( int key );
+
 //
 // cl_input
 //
@@ -464,20 +498,12 @@ typedef struct kbutton_s {
 	qboolean	wasPressed;		// set when down, not cleared when up
 } kbutton_t;
 
-extern	kbutton_t	in_mlook, in_klook;
-extern 	kbutton_t 	in_strafe;
-extern 	kbutton_t 	in_speed;
-
 void CL_InitInput (void);
 void CL_ShutdownInput(void);
 void CL_SendCmd (void);
 void CL_ClearState (void);
-void CL_ReadPackets (void);
 
 void CL_WritePacket( void );
-void IN_CenterView (void);
-
-void CL_VerifyCode( void );
 
 float CL_KeyState (kbutton_t *key);
 const char *Key_KeynumToString( int keynum/*, qboolean bTranslate */ ); //note: translate is only called for menu display not configs
@@ -493,7 +519,7 @@ void CL_ParseServerMessage( msg_t *msg );
 
 //====================================================================
 
-void	CL_ServerInfoPacket( netadr_t from, msg_t *msg );
+void	CL_ServerInfoPacket( const netadr_t *from, msg_t *msg );
 void	CL_LocalServers_f( void );
 void	CL_GlobalServers_f( void );
 void	CL_FavoriteServers_f( void );
@@ -558,8 +584,6 @@ void CIN_SetExtents (int handle, int x, int y, int w, int h);
 void CIN_SetLooping (int handle, qboolean loop);
 void CIN_UploadCinematic(int handle);
 void CIN_CloseAllVideos(void);
-
-void CL_UpdateHotSwap(void);
 
 //
 // cl_cgame.c

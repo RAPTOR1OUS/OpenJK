@@ -30,7 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 	#include "g_local.h"
 #elif defined(_CGAME)
 	#include "cgame/cg_local.h"
-#elif defined(_UI)
+#elif defined(UI_BUILD)
 	#include "ui/ui_local.h"
 #endif
 
@@ -312,9 +312,7 @@ int WeaponAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_THERMAL_THROW,//WP_THERMAL,
 	BOTH_ATTACK3,//BOTH_ATTACK11,//WP_TRIP_MINE,
 	BOTH_ATTACK3,//BOTH_ATTACK12,//WP_DET_PACK,
-	#ifndef BASE_COMPAT
-		BOTH_ATTACK3,//WP_CONCUSSION,
-	#endif // BASE_COMPAT
+	BOTH_ATTACK3,//WP_CONCUSSION,
 	BOTH_ATTACK2,//WP_BRYAR_OLD,
 
 	//NOT VALID (e.g. should never really be used):
@@ -322,31 +320,41 @@ int WeaponAttackAnim[WP_NUM_WEAPONS] =
 	BOTH_ATTACK1//WP_TURRET,
 };
 
-qboolean BG_FileExists(const char *fileName)
-{
-	if (fileName && fileName[0])
-	{
-		int fh = 0;
-	#ifdef _GAME
-		trap->FS_Open(fileName, &fh, FS_READ);
-	#elif _CGAME
-		trap->FS_Open(fileName, &fh, FS_READ);
-	#elif _UI
-		trap->FS_Open(fileName, &fh, FS_READ);
-	#endif
-		if (fh > 0)
-		{
-		#ifdef _GAME
-			trap->FS_Close(fh);
-		#elif _CGAME
-			trap->FS_Close(fh);
-		#elif _UI
-			trap->FS_Close(fh);
-		#endif
+void BG_FixWeaponAttackAnim(void) {
+#if defined(_GAME)
+	const qboolean doFix = !!g_fixWeaponAttackAnim.integer;
+#elif defined(_CGAME)
+	const char *cs = CG_ConfigString(CS_LEGACY_FIXES);
+	const uint32_t legacyFixes = strtoul(cs, NULL, 0);
+	const qboolean doFix = !!(legacyFixes & (1 << LEGACYFIX_WEAPONATTACKANIM));
+#elif defined(UI_BUILD)
+	const qboolean doFix = qtrue; // no chance of prediction error from UI code
+#endif
+	int *move;
+
+	for (move = WeaponAttackAnim; move - WeaponAttackAnim < ARRAY_LEN(WeaponAttackAnim); move++) {
+		const weapon_t wpIndex = (weapon_t)(move - WeaponAttackAnim);
+		if (wpIndex == WP_CONCUSSION) {
+			*move = doFix ? BOTH_ATTACK3 : BOTH_ATTACK2;
+		} else if (wpIndex == WP_BRYAR_OLD) {
+			*move = doFix ? BOTH_ATTACK2 : BOTH_STAND1;
+		} else if (wpIndex == WP_EMPLACED_GUN) {
+			*move = doFix ? BOTH_STAND1 : BOTH_ATTACK1;
+		} else if (wpIndex == WP_TURRET) {
+			*move = doFix ? BOTH_ATTACK1 : BOTH_ATTACK2; // better than UB?
+		}
+	}
+}
+
+qboolean BG_FileExists( const char *fileName ) {
+	if ( fileName && fileName[0] ) {
+		fileHandle_t f = NULL_FILE;
+		trap->FS_Open( fileName, &f, FS_READ );
+		if ( f > 0 ) {
+			trap->FS_Close( f );
 			return qtrue;
 		}
 	}
-
 	return qfalse;
 }
 
@@ -1117,7 +1125,7 @@ Don't place this
 	{
 		"weapon_saber",
 		"sound/weapons/w_pkup.wav",
-        { "models/weapons2/saber/saber_w.glm",
+        { DEFAULT_SABER_MODEL,
 		0, 0, 0},
 /* view */		"models/weapons2/saber/saber_w.md3",
 /* icon */		"gfx/hud/w_icon_lightsaber",
@@ -2072,8 +2080,7 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 		{//force powers and saber only
 			if ( item->giType != IT_TEAM //not a flag
 				&& item->giType != IT_ARMOR//not shields
-				&& (item->giType != IT_WEAPON
-									|| item->giTag != WP_SABER)//not a saber
+				&& (item->giType != IT_WEAPON || item->giTag != WP_SABER)//not a saber
 				&& (item->giType != IT_HOLDABLE || item->giTag != HI_SEEKER)//not a seeker
 				&& (item->giType != IT_POWERUP || item->giTag == PW_YSALAMIRI) )//not a force pick-up
 			{
@@ -2332,7 +2339,7 @@ void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, vec3_t resu
 	}
 }
 
-const char *eventnames[] = {
+const char *eventnames[EV_NUM_ENTITY_EVENTS] = {
 	"EV_NONE",
 
 	"EV_CLIENTJOIN",
@@ -2456,10 +2463,8 @@ const char *eventnames[] = {
 	"EV_DEATH3",
 	"EV_OBITUARY",
 
-	#ifdef BASE_COMPAT
-		"EV_POWERUP_QUAD",
-		"EV_POWERUP_BATTLESUIT",
-	#endif // BASE_COMPAT
+	"EV_POWERUP_QUAD",
+	"EV_POWERUP_BATTLESUIT",
 	//"EV_POWERUP_REGEN",
 
 	"EV_FORCE_DRAINED",
@@ -3092,7 +3097,7 @@ int BG_ModelCache(const char *modelName, const char *skinName)
 	#define MAX_POOL_SIZE	3000000 //1024000
 #elif defined(_CGAME) //don't need as much for cgame stuff. 2mb will be fine.
 	#define MAX_POOL_SIZE	2048000
-#elif defined(_UI) //And for the ui the only thing we'll be using this for anyway is allocating anim data for g2 menu models
+#elif defined(UI_BUILD) //And for the ui the only thing we'll be using this for anyway is allocating anim data for g2 menu models
 	#define MAX_POOL_SIZE	512000
 #endif
 

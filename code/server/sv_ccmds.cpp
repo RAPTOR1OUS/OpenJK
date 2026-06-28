@@ -27,9 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../game/weapons.h"
 #include "../game/g_items.h"
 #include "../game/statindex.h"
-
-#include "../win32/AutoVersion.h"
-
+#include "../qcommon/game_version.h"
 
 /*
 ===============================================================================
@@ -45,7 +43,7 @@ qboolean qbLoadTransition = qfalse;
 //=========================================================
 // don't call this directly, it should only be called from SV_Map_f() or SV_MapTransition_f()
 //
-static bool SV_Map_( ForceReload_e eForceReload ) 
+static bool SV_Map_( ForceReload_e eForceReload )
 {
 	char		*map = NULL;
 	char		expanded[MAX_QPATH] = {0};
@@ -86,21 +84,21 @@ static bool SV_Map_( ForceReload_e eForceReload )
 
 
 
-// Save out some player data for later restore if this is a spawn point with KEEP_PREV (spawnflags&1) set...	
+// Save out some player data for later restore if this is a spawn point with KEEP_PREV (spawnflags&1) set...
 //
 // (now also called by auto-save code to setup the cvars correctly
-void SV_Player_EndOfLevelSave(void)						   
+void SV_Player_EndOfLevelSave(void)
 {
 	int	i;
 
 	// I could just call GetClientState() but that's in sv_bot.cpp, and I'm not sure if that's going to be deleted for
 	//	the single player build, so here's the guts again...
 	//
-	client_t* cl = &svs.clients[0];	// 0 because only ever us as a player	
+	client_t* cl = &svs.clients[0];	// 0 because only ever us as a player
 
-	if (cl 
+	if (cl
 		&&
-		cl->gentity && cl->gentity->client	// crash fix for voy4->brig transition when you kill Foster. 
+		cl->gentity && cl->gentity->client	// crash fix for voy4->brig transition when you kill Foster.
 											//	Shouldn't happen, but does sometimes...
 		)
 	{
@@ -224,7 +222,7 @@ void SV_Player_EndOfLevelSave(void)
 // Restart the server on a different map
 //
 static void SV_MapTransition_f(void)
-{		
+{
 	const char	*spawntarget;
 
 #ifdef JK2_MODE
@@ -233,7 +231,7 @@ static void SV_MapTransition_f(void)
 	SV_Player_EndOfLevelSave();
 
 	spawntarget = Cmd_Argv(2);
-	if ( *spawntarget != '\0' ) 
+	if ( *spawntarget != '\0' )
 	{
 		Cvar_Set( "spawntarget", spawntarget );
 	}
@@ -256,7 +254,7 @@ player weapons/ammo/etc from the previous level that you haven't really exited (
 #ifdef JK2_MODE
 extern void SCR_UnprecacheScreenshot();
 #endif
-static void SV_Map_f( void ) 
+static void SV_Map_f( void )
 {
 	Cvar_Set( sCVARNAME_PLAYERSAVE, "");
 	Cvar_Set( "spawntarget", "" );
@@ -322,7 +320,7 @@ void SV_LoadTransition_f(void)
 
 	//set the spawntarget if there is one
 	spawntarget = Cmd_Argv(2);
-	if ( *spawntarget != '\0' ) 
+	if ( *spawntarget != '\0' )
 	{
 		Cvar_Set( "spawntarget", spawntarget );
 	}
@@ -386,7 +384,7 @@ static void SV_Status_f( void ) {
 
 	Com_Printf( "name    : %s^7\n", cl->name );
 	Com_Printf( "score   : %i\n", cl->gentity->client->persistant[PERS_SCORE] );
-	Com_Printf( "version : %s %s %i\n", STATUS_OS, VERSION_STRING_DOTTED, PROTOCOL_VERSION );
+	Com_Printf( "version : %s %s %i\n", STATUS_OS, JK_VERSION, PROTOCOL_VERSION );
 #ifdef JK2_MODE
 	Com_Printf( "game    : Jedi Outcast %s\n", FS_GetCurrentGameDir() );
 #else

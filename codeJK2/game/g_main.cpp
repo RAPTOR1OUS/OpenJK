@@ -35,6 +35,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "objectives.h"
 #include "../cgame/cg_local.h"	// yeah I know this is naughty, but we're shipping soon...
 #include "time.h"
+#include "../code/qcommon/ojk_saved_game_helper.h"
+#include "../code/qcommon/game_version.h"
 
 extern CNavigator		navigator;
 
@@ -76,7 +78,7 @@ qboolean PInUse(unsigned int entNum)
 {
 	assert(entNum>=0);
 	assert(entNum<MAX_GENTITIES);
-	return((g_entityInUseBits[entNum/32]&(((unsigned int)1)<<(entNum&0x1f)))!=0);
+	return (qboolean)((g_entityInUseBits[entNum / 32] & (1u << (entNum & 0x1f))) != 0);
 }
 
 qboolean PInUse2(gentity_t *ent)
@@ -84,17 +86,28 @@ qboolean PInUse2(gentity_t *ent)
 	assert(((uintptr_t)ent)>=(uintptr_t)g_entities);
 	assert(((uintptr_t)ent)<=(uintptr_t)(g_entities+MAX_GENTITIES-1));
 	unsigned int entNum=ent-g_entities;
-	return((g_entityInUseBits[entNum/32]&(((unsigned int)1)<<(entNum&0x1f)))!=0);
+	return (qboolean)((g_entityInUseBits[entNum / 32] & (1u << (entNum & 0x1f))) != 0);
 }
 
-void WriteInUseBits(void)
+void WriteInUseBits()
 {
-	gi.AppendToSaveGame(INT_ID('I','N','U','S'), &g_entityInUseBits, sizeof(g_entityInUseBits) );
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
+
+	saved_game.write_chunk<uint32_t>(
+		INT_ID('I', 'N', 'U', 'S'),
+		::g_entityInUseBits);
 }
 
-void ReadInUseBits(void)
+void ReadInUseBits()
 {
-	gi.ReadFromSaveGame(INT_ID('I','N','U','S'), &g_entityInUseBits, sizeof(g_entityInUseBits), NULL);
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
+
+	saved_game.read_chunk<uint32_t>(
+		INT_ID('I', 'N', 'U', 'S'),
+		::g_entityInUseBits);
+
 	// This is only temporary. Once I have converted all the ent->inuse refs,
 	// it won;t be needed -MW.
 	for(int i=0;i<MAX_GENTITIES;i++)
@@ -545,8 +558,8 @@ void G_InitCvars( void ) {
 	g_developer = gi.cvar ("developer", "", 0);
 
 	// noset vars
-	gi.cvar( "gamename", GAMEVERSION , CVAR_SERVERINFO | CVAR_ROM );
-	gi.cvar( "gamedate", __DATE__ , CVAR_ROM );
+	gi.cvar( "gamename", JK_VERSION , CVAR_SERVERINFO | CVAR_ROM );
+	gi.cvar( "gamedate", SOURCE_DATE , CVAR_ROM );
 	g_skippingcin = gi.cvar ("skippingCinematic", "0", CVAR_ROM);
 
 	// latched vars
@@ -571,7 +584,7 @@ void G_InitCvars( void ) {
 	com_buildScript = gi.cvar ("com_buildscript", "0", 0);
 
 	g_saberAutoBlocking = gi.cvar( "g_saberAutoBlocking", "1", CVAR_ARCHIVE|CVAR_CHEAT );//must press +block button to do any blocking
-	g_saberRealisticCombat = gi.cvar( "g_saberRealisticCombat", "0", CVAR_ARCHIVE|CVAR_CHEAT );//makes collision more precise, increases damage
+	g_saberRealisticCombat = gi.cvar( "g_saberRealisticCombat", "0", CVAR_ARCHIVE );//makes collision more precise, increases damage
 	g_saberMoveSpeed = gi.cvar( "g_saberMoveSpeed", "1", CVAR_ARCHIVE|CVAR_CHEAT );//how fast you run while attacking with a saber
 	g_saberAnimSpeed = gi.cvar( "g_saberAnimSpeed", "1", CVAR_ARCHIVE|CVAR_CHEAT );//how fast saber animations run
 	g_saberAutoAim = gi.cvar( "g_saberAutoAim", "1", CVAR_ARCHIVE|CVAR_CHEAT );//auto-aims at enemies when not moving or when just running forward
@@ -607,8 +620,8 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 	g_qbLoadTransition = qbLoadTransition;
 
 	gi.Printf ("------- Game Initialization -------\n");
-	gi.Printf ("gamename: %s\n", GAMEVERSION);
-	gi.Printf ("gamedate: %s\n", __DATE__);
+	gi.Printf ("gamename: %s\n", JK_VERSION);
+	gi.Printf ("gamedate: %s\n", SOURCE_DATE);
 
 	srand( randomSeed );
 
@@ -639,7 +652,7 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 	ClearAllInUse();
 	// initialize all clients for this game
 	level.maxclients = 1;
-	level.clients = (struct gclient_s *) G_Alloc( level.maxclients * sizeof(level.clients[0]) );
+	level.clients = (gclient_t *) G_Alloc( level.maxclients * sizeof(level.clients[0]) );
 	memset(level.clients, 0, level.maxclients * sizeof(level.clients[0]));
 
 	// set client fields on player
@@ -1477,14 +1490,24 @@ extern qboolean player_locked;
 
 void G_LoadSave_WriteMiscData(void)
 {
-	gi.AppendToSaveGame(INT_ID('L','C','K','D'), &player_locked, sizeof(player_locked));
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
+
+	saved_game.write_chunk<int32_t>(
+		INT_ID('L', 'C', 'K', 'D'),
+		::player_locked);
 }
 
 
 
 void G_LoadSave_ReadMiscData(void)
 {
-	gi.ReadFromSaveGame(INT_ID('L','C','K','D'), &player_locked, sizeof(player_locked), NULL);
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
+
+	saved_game.read_chunk<int32_t>(
+		INT_ID('L', 'C', 'K', 'D'),
+		::player_locked);
 }
 
 

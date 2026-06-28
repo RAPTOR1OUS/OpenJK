@@ -24,8 +24,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "server.h"
 #include "qcommon/stringed_ingame.h"
-#include "server/sv_gameapi.h"
 #include "qcommon/game_version.h"
+#include "server/sv_gameapi.h"
 
 /*
 ===============================================================================
@@ -682,7 +682,7 @@ static void SV_WriteBans( void )
 			curban = &serverBans[index];
 
 			Com_sprintf( writebuf, sizeof( writebuf ), "%d %s %d\n",
-				curban->isexception, NET_AdrToString( curban->ip ), curban->subnet );
+				curban->isexception, NET_AdrToString( &curban->ip ), curban->subnet );
 			FS_Write( writebuf, strlen( writebuf ), writeto );
 		}
 
@@ -847,24 +847,24 @@ static void SV_AddBanToList( qboolean isexception )
 
 		if ( curban->subnet <= mask )
 		{
-			if ( (curban->isexception || !isexception) && NET_CompareBaseAdrMask( curban->ip, ip, curban->subnet ) )
+			if ( (curban->isexception || !isexception) && NET_CompareBaseAdrMask( &curban->ip, &ip, curban->subnet ) )
 			{
-				Q_strncpyz( addy2, NET_AdrToString( ip ), sizeof( addy2 ) );
+				Q_strncpyz( addy2, NET_AdrToString( &ip ), sizeof( addy2 ) );
 
 				Com_Printf( "Error: %s %s/%d supersedes %s %s/%d\n", curban->isexception ? "Exception" : "Ban",
-					NET_AdrToString( curban->ip ), curban->subnet,
+					NET_AdrToString( &curban->ip ), curban->subnet,
 					isexception ? "exception" : "ban", addy2, mask );
 				return;
 			}
 		}
 		if ( curban->subnet >= mask )
 		{
-			if ( !curban->isexception && isexception && NET_CompareBaseAdrMask( curban->ip, ip, mask ) )
+			if ( !curban->isexception && isexception && NET_CompareBaseAdrMask( &curban->ip, &ip, mask ) )
 			{
-				Q_strncpyz( addy2, NET_AdrToString( curban->ip ), sizeof( addy2 ) );
+				Q_strncpyz( addy2, NET_AdrToString( &curban->ip ), sizeof( addy2 ) );
 
 				Com_Printf( "Error: %s %s/%d supersedes already existing %s %s/%d\n", isexception ? "Exception" : "Ban",
-					NET_AdrToString( ip ), mask,
+					NET_AdrToString( &ip ), mask,
 					curban->isexception ? "exception" : "ban", addy2, curban->subnet );
 				return;
 			}
@@ -877,7 +877,7 @@ static void SV_AddBanToList( qboolean isexception )
 	{
 		curban = &serverBans[index];
 
-		if ( curban->subnet > mask && (!curban->isexception || isexception) && NET_CompareBaseAdrMask( curban->ip, ip, mask ) )
+		if ( curban->subnet > mask && (!curban->isexception || isexception) && NET_CompareBaseAdrMask( &curban->ip, &ip, mask ) )
 			SV_DelBanEntryFromList( index );
 		else
 			index++;
@@ -892,7 +892,7 @@ static void SV_AddBanToList( qboolean isexception )
 	SV_WriteBans();
 
 	Com_Printf( "Added %s: %s/%d\n", isexception ? "ban exception" : "ban",
-		NET_AdrToString( ip ), mask );
+		NET_AdrToString( &ip ), mask );
 }
 
 /*
@@ -941,11 +941,11 @@ static void SV_DelBanFromList( qboolean isexception )
 
 			if ( curban->isexception == isexception		&&
 				curban->subnet >= mask 			&&
-				NET_CompareBaseAdrMask( curban->ip, ip, mask ) )
+				NET_CompareBaseAdrMask( &curban->ip, &ip, mask ) )
 			{
 				Com_Printf( "Deleting %s %s/%d\n",
 					isexception ? "exception" : "ban",
-					NET_AdrToString( curban->ip ), curban->subnet );
+					NET_AdrToString( &curban->ip ), curban->subnet );
 
 				SV_DelBanEntryFromList( index );
 			}
@@ -973,7 +973,7 @@ static void SV_DelBanFromList( qboolean isexception )
 				{
 					Com_Printf( "Deleting %s %s/%d\n",
 						isexception ? "exception" : "ban",
-						NET_AdrToString( serverBans[index].ip ), serverBans[index].subnet );
+						NET_AdrToString( &serverBans[index].ip ), serverBans[index].subnet );
 
 					SV_DelBanEntryFromList( index );
 
@@ -1015,7 +1015,7 @@ static void SV_ListBans_f( void )
 			count++;
 
 			Com_Printf( "Ban #%d: %s/%d\n", count,
-				NET_AdrToString( ban->ip ), ban->subnet );
+				NET_AdrToString( &ban->ip ), ban->subnet );
 		}
 	}
 	// List all exceptions
@@ -1027,7 +1027,7 @@ static void SV_ListBans_f( void )
 			count++;
 
 			Com_Printf( "Except #%d: %s/%d\n", count,
-				NET_AdrToString( ban->ip ), ban->subnet );
+				NET_AdrToString( &ban->ip ), ban->subnet );
 		}
 	}
 }
@@ -1194,7 +1194,7 @@ static void SV_Status_f( void )
 		}
 
 		ps = SV_GameClientNum( i );
-		s = NET_AdrToString( cl->netchan.remoteAddress );
+		s = NET_AdrToString( &cl->netchan.remoteAddress );
 
 		if (!avoidTruncation)
 		{
@@ -1776,7 +1776,7 @@ static int SV_FindLeafFolders( const char *baseFolder, char *result, int maxResu
 	}
 
 	Z_Free( fileList );
-	
+
 	return resultCount;
 }
 
@@ -1906,6 +1906,29 @@ static void SV_Record_f( void ) {
 	SV_RecordDemo( cl, demoName );
 }
 
+/*
+=================
+SV_WhitelistIP_f
+=================
+*/
+static void SV_WhitelistIP_f( void ) {
+	if ( Cmd_Argc() < 2 ) {
+		Com_Printf ("Usage: whitelistip <ip>...\n");
+		return;
+	}
+
+	for ( int i = 1; i < Cmd_Argc(); i++ ) {
+		netadr_t	adr;
+
+		if ( NET_StringToAdr( Cmd_Argv(i), &adr ) ) {
+			SVC_WhitelistAdr( &adr );
+			Com_Printf("Added %s to the IP whitelist\n", NET_AdrToString(&adr));
+		} else {
+			Com_Printf("Incorrect IP address: %s\n", Cmd_Argv(i));
+		}
+	}
+}
+
 //===========================================================
 
 /*
@@ -1931,41 +1954,42 @@ void SV_AddOperatorCommands( void ) {
 	}
 	initialized = qtrue;
 
-	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f);
-	Cmd_AddCommand ("kick", SV_Kick_f);
-	Cmd_AddCommand ("kickbots", SV_KickBots_f);
-	Cmd_AddCommand ("kickall", SV_KickAll_f);
-	Cmd_AddCommand ("kicknum", SV_KickNum_f);
-	Cmd_AddCommand ("clientkick", SV_KickNum_f);
-	Cmd_AddCommand ("status", SV_Status_f);
-	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f);
-	Cmd_AddCommand ("systeminfo", SV_Systeminfo_f);
-	Cmd_AddCommand ("dumpuser", SV_DumpUser_f);
-	Cmd_AddCommand ("map_restart", SV_MapRestart_f);
+	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f, "Sends a heartbeat to the masterserver" );
+	Cmd_AddCommand ("kick", SV_Kick_f, "Kick a user from the server" );
+	Cmd_AddCommand ("kickbots", SV_KickBots_f, "Kick all bots from the server" );
+	Cmd_AddCommand ("kickall", SV_KickAll_f, "Kick all users from the server" );
+	Cmd_AddCommand ("kicknum", SV_KickNum_f, "Kick a user from the server by userid" );
+	Cmd_AddCommand ("clientkick", SV_KickNum_f, "Kick a user from the server by userid" );
+	Cmd_AddCommand ("status", SV_Status_f, "Prints status of server and connected clients" );
+	Cmd_AddCommand ("serverinfo", SV_Serverinfo_f, "Prints the serverinfo that is visible in the server browsers" );
+	Cmd_AddCommand ("systeminfo", SV_Systeminfo_f, "Prints the systeminfo variables that are replicated to clients" );
+	Cmd_AddCommand ("dumpuser", SV_DumpUser_f, "Prints the userinfo for a given userid" );
+	Cmd_AddCommand ("map_restart", SV_MapRestart_f, "Restart the current map" );
 	Cmd_AddCommand ("sectorlist", SV_SectorList_f);
-	Cmd_AddCommand ("map", SV_Map_f);
+	Cmd_AddCommand ("map", SV_Map_f, "Load a new map with cheats disabled" );
 	Cmd_SetCommandCompletionFunc( "map", SV_CompleteMapName );
-	Cmd_AddCommand ("devmap", SV_Map_f);
+	Cmd_AddCommand ("devmap", SV_Map_f, "Load a new map with cheats enabled" );
 	Cmd_SetCommandCompletionFunc( "devmap", SV_CompleteMapName );
 //	Cmd_AddCommand ("devmapbsp", SV_Map_f);	// not used in MP codebase, no server BSP_cacheing
-	Cmd_AddCommand ("devmapmdl", SV_Map_f);
+	Cmd_AddCommand ("devmapmdl", SV_Map_f, "Load a new map with cheats enabled" );
 	Cmd_SetCommandCompletionFunc( "devmapmdl", SV_CompleteMapName );
-	Cmd_AddCommand ("devmapall", SV_Map_f);
+	Cmd_AddCommand ("devmapall", SV_Map_f, "Load a new map with cheats enabled" );
 	Cmd_SetCommandCompletionFunc( "devmapall", SV_CompleteMapName );
-	Cmd_AddCommand ("killserver", SV_KillServer_f);
-	Cmd_AddCommand ("svsay", SV_ConSay_f);
-	Cmd_AddCommand ("svtell", SV_ConTell_f);
-	Cmd_AddCommand ("forcetoggle", SV_ForceToggle_f);
-	Cmd_AddCommand ("weapontoggle", SV_WeaponToggle_f);
-	Cmd_AddCommand ("svrecord", SV_Record_f);
-	Cmd_AddCommand ("svstoprecord", SV_StopRecord_f);
-	Cmd_AddCommand ("sv_rehashbans", SV_RehashBans_f);
-	Cmd_AddCommand ("sv_listbans", SV_ListBans_f);
-	Cmd_AddCommand ("sv_banaddr", SV_BanAddr_f);
-	Cmd_AddCommand ("sv_exceptaddr", SV_ExceptAddr_f);
-	Cmd_AddCommand ("sv_bandel", SV_BanDel_f);
-	Cmd_AddCommand ("sv_exceptdel", SV_ExceptDel_f);
-	Cmd_AddCommand ("sv_flushbans", SV_FlushBans_f);
+	Cmd_AddCommand ("killserver", SV_KillServer_f, "Shuts the server down and disconnects all clients" );
+	Cmd_AddCommand ("svsay", SV_ConSay_f, "Broadcast server messages to clients" );
+	Cmd_AddCommand ("svtell", SV_ConTell_f, "Private message from the server to a user" );
+	Cmd_AddCommand ("forcetoggle", SV_ForceToggle_f, "Toggle g_forcePowerDisable bits" );
+	Cmd_AddCommand ("weapontoggle", SV_WeaponToggle_f, "Toggle g_weaponDisable bits" );
+	Cmd_AddCommand ("svrecord", SV_Record_f, "Record a server-side demo" );
+	Cmd_AddCommand ("svstoprecord", SV_StopRecord_f, "Stop recording a server-side demo" );
+	Cmd_AddCommand ("sv_rehashbans", SV_RehashBans_f, "Reloads banlist from file" );
+	Cmd_AddCommand ("sv_listbans", SV_ListBans_f, "Lists bans" );
+	Cmd_AddCommand ("sv_banaddr", SV_BanAddr_f, "Bans a user" );
+	Cmd_AddCommand ("sv_exceptaddr", SV_ExceptAddr_f, "Adds a ban exception for a user" );
+	Cmd_AddCommand ("sv_bandel", SV_BanDel_f, "Removes a ban" );
+	Cmd_AddCommand ("sv_exceptdel", SV_ExceptDel_f, "Removes a ban exception" );
+	Cmd_AddCommand ("sv_flushbans", SV_FlushBans_f, "Removes all bans and exceptions" );
+	Cmd_AddCommand ("whitelistip", SV_WhitelistIP_f, "Add IP to the whitelist" );
 }
 
 /*

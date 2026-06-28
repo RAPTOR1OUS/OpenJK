@@ -144,9 +144,7 @@ Check for lava / slime contents and drowning
 =============
 */
 void P_WorldEffects( gentity_t *ent ) {
-#ifdef BASE_COMPAT
 	qboolean	envirosuit = qfalse;
-#endif
 	int			waterlevel;
 
 	if ( ent->client->noclip ) {
@@ -156,19 +154,15 @@ void P_WorldEffects( gentity_t *ent ) {
 
 	waterlevel = ent->waterlevel;
 
-	#ifdef BASE_COMPAT
-		envirosuit = ent->client->ps.powerups[PW_BATTLESUIT] > level.time;
-	#endif // BASE_COMPAT
+	envirosuit = ent->client->ps.powerups[PW_BATTLESUIT] > level.time;
 
 	//
 	// check for drowning
 	//
 	if ( waterlevel == 3 ) {
-		#ifdef BASE_COMPAT
-			// envirosuit give air
-			if ( envirosuit )
-				ent->client->airOutTime = level.time + 10000;
-		#endif // BASE_COMPAT
+		// envirosuit give air
+		if ( envirosuit )
+			ent->client->airOutTime = level.time + 10000;
 
 		// if out of air, start drowning
 		if ( ent->client->airOutTime < level.time) {
@@ -208,11 +202,9 @@ void P_WorldEffects( gentity_t *ent ) {
 	{
 		if ( ent->health > 0 && ent->client->tempSpectate < level.time && ent->pain_debounce_time <= level.time )
 		{
-		#ifdef BASE_COMPAT
 			if ( envirosuit )
 				G_AddEvent( ent, EV_POWERUP_BATTLESUIT, 0 );
 			else
-		#endif
 			{
 				if ( ent->watertype & CONTENTS_LAVA )
 					G_Damage( ent, NULL, NULL, NULL, NULL, 30*waterlevel, 0, MOD_LAVA );
@@ -1488,33 +1480,7 @@ static int NPC_GetRunSpeed( gentity_t *ent )
 
 	if ( ( ent->client == NULL ) || ( ent->NPC == NULL ) )
 		return 0;
-/*
-	switch ( ent->client->playerTeam )
-	{
-	case TEAM_BORG:
-		runSpeed = ent->NPC->stats.runSpeed;
-		runSpeed += BORG_RUN_INCR * (g_npcspskill->integer%3);
-		break;
 
-	case TEAM_8472:
-		runSpeed = ent->NPC->stats.runSpeed;
-		runSpeed += SPECIES_RUN_INCR * (g_npcspskill->integer%3);
-		break;
-
-	case TEAM_STASIS:
-		runSpeed = ent->NPC->stats.runSpeed;
-		runSpeed += STASIS_RUN_INCR * (g_npcspskill->integer%3);
-		break;
-
-	case TEAM_BOTS:
-		runSpeed = ent->NPC->stats.runSpeed;
-		break;
-
-	default:
-		runSpeed = ent->NPC->stats.runSpeed;
-		break;
-	}
-*/
 	// team no longer indicates species/race.  Use NPC_class to adjust speed for specific npc types
 	switch( ent->client->NPC_class)
 	{
@@ -1907,6 +1873,7 @@ void ClientThink_real( gentity_t *ent ) {
 	qboolean	isNPC = qfalse;
 	qboolean	controlledByPlayer = qfalse;
 	qboolean	killJetFlags = qtrue;
+	qboolean	isFollowing;
 
 	client = ent->client;
 
@@ -1944,7 +1911,9 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 	}
 
-	if (!(client->ps.pm_flags & PMF_FOLLOW))
+	isFollowing = (client->ps.pm_flags & PMF_FOLLOW) ? qtrue : qfalse;
+
+	if (!isFollowing)
 	{
 		if (level.gametype == GT_SIEGE &&
 			client->siegeClass != -1 &&
@@ -2028,7 +1997,7 @@ void ClientThink_real( gentity_t *ent ) {
 	// mark the time, so the connection sprite can be removed
 	ucmd = &ent->client->pers.cmd;
 
-	if ( client && (client->ps.eFlags2&EF2_HELD_BY_MONSTER) )
+	if ( client && !isFollowing && (client->ps.eFlags2&EF2_HELD_BY_MONSTER) )
 	{
 		G_HeldByMonster( ent, ucmd );
 	}
@@ -2249,7 +2218,6 @@ void ClientThink_real( gentity_t *ent ) {
 						if ( ent->NPC->currentSpeed >= 80 && !controlledByPlayer )
 						{//At higher speeds, need to slow down close to stuff
 							//Slow down as you approach your goal
-						//	if ( ent->NPC->distToGoal < SLOWDOWN_DIST && client->race != RACE_BORG && !(ent->NPC->aiFlags&NPCAI_NO_SLOWDOWN) )//128
 							if ( ent->NPC->distToGoal < SLOWDOWN_DIST && !(ent->NPC->aiFlags&NPCAI_NO_SLOWDOWN) )//128
 							{
 								if ( ent->NPC->desiredSpeed > MIN_NPC_SPEED )

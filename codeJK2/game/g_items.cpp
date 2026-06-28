@@ -707,7 +707,7 @@ gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity, char *targ
 			&& item->giTag != WP_TRIP_MINE
 			&& item->giTag != WP_DET_PACK )
 		{
-			VectorSet( dropped->s.angles, 0, crandom() * 180, 90.0f );
+			VectorSet( dropped->s.angles, 0, Q_flrand(-1.0f, 1.0f) * 180, 90.0f );
 			G_SetAngles( dropped, dropped->s.angles );
 		}
 	}
@@ -744,7 +744,7 @@ gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle, qboolean copyt
 
 	AngleVectors( angles, velocity, NULL, NULL );
 	VectorScale( velocity, 150, velocity );
-	velocity[2] += 200 + crandom() * 50;
+	velocity[2] += 200 + Q_flrand(-1.0f, 1.0f) * 50;
 
 	if ( copytarget )
 	{
@@ -882,7 +882,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 		gi.trace( &tr, ent->s.origin, ent->mins, ent->maxs, dest, ent->s.number, MASK_SOLID|CONTENTS_PLAYERCLIP, G2_NOCOLLIDE, 0 );
 		if ( tr.startsolid )
 		{
-			if ( &g_entities[tr.entityNum] != NULL )
+			if ( g_entities[tr.entityNum].inuse )
 			{
 				gi.Printf (S_COLOR_RED"FinishSpawningItem: removing %s startsolid at %s (in a %s)\n", ent->classname, vtos(ent->s.origin), g_entities[tr.entityNum].classname );
 			}
@@ -1115,9 +1115,9 @@ void G_RunItem( gentity_t *ent ) {
 		{
 			ent->s.pos.trType = TR_GRAVITY;
 			ent->s.pos.trTime = level.time;
-			ent->s.pos.trDelta[0] += crandom() * 40.0f; // I dunno, just do this??
-			ent->s.pos.trDelta[1] += crandom() * 40.0f;
-			ent->s.pos.trDelta[2] += random() * 20.0f;
+			ent->s.pos.trDelta[0] += Q_flrand(-1.0f, 1.0f) * 40.0f; // I dunno, just do this??
+			ent->s.pos.trDelta[1] += Q_flrand(-1.0f, 1.0f) * 40.0f;
+			ent->s.pos.trDelta[2] += Q_flrand(0.0f, 1.0f) * 20.0f;
 		}
 		return;
 	}

@@ -274,8 +274,6 @@ typedef struct spawn_s {
 	void		(*spawn)( void );
 } spawn_t;
 
-/* This array MUST be sorted correctly by alphabetical name field */
-/* for conformity, use lower-case names too */
 spawn_t spawns [] = {
 	{ "misc_model_static",		SP_misc_model_static		},
 	{ "misc_skyportal",			SP_misc_skyportal			},
@@ -300,7 +298,7 @@ void CG_ParseEntityFromSpawnVars( void ) {
 	int i;
 	char *classname;
 	char *p, *value, *gametypeName;
-	static char *gametypeNames [] = { "ffa", "holocron", "jedimaster", "duel", "powerduel", "single", "team", "siege", "ctf", "cty" };
+	static char *gametypeNames[GT_MAX_GAME_TYPE] = { "ffa", "holocron", "jedimaster", "duel", "powerduel", "single", "team", "siege", "ctf", "cty" };
 
 	// check for "notsingle" flag
 	if( cgs.gametype == GT_SINGLE_PLAYER ) {
@@ -336,7 +334,7 @@ void CG_ParseEntityFromSpawnVars( void ) {
 	}
 
 	if( CG_SpawnString( "classname", "", &classname ) ) {
-		s = (spawn_t *)bsearch( classname, spawns, ARRAY_LEN( spawns ), sizeof( spawn_t ), spawncmp );
+		s = (spawn_t *)Q_LinearSearch( classname, spawns, ARRAY_LEN( spawns ), sizeof( spawn_t ), spawncmp );
 		if ( s )
 			s->spawn();
 	}

@@ -1059,9 +1059,9 @@ void NPC_BSGM_Attack( void )
 
 		VectorCopy( NPCS.NPC->enemy->r.currentOrigin, target );
 
-		target[0] += flrand( -5, 5 )+(crandom()*(6-NPCS.NPCInfo->currentAim)*2);
-		target[1] += flrand( -5, 5 )+(crandom()*(6-NPCS.NPCInfo->currentAim)*2);
-		target[2] += flrand( -5, 5 )+(crandom()*(6-NPCS.NPCInfo->currentAim)*2);
+		target[0] += flrand( -5, 5 )+(Q_flrand(-1.0f, 1.0f)*(6-NPCS.NPCInfo->currentAim)*2);
+		target[1] += flrand( -5, 5 )+(Q_flrand(-1.0f, 1.0f)*(6-NPCS.NPCInfo->currentAim)*2);
+		target[2] += flrand( -5, 5 )+(Q_flrand(-1.0f, 1.0f)*(6-NPCS.NPCInfo->currentAim)*2);
 
 		//Find the desired angles
 		clearshot = WP_LobFire( NPCS.NPC, muzzle, target, mins, maxs, MASK_SHOT|CONTENTS_LIGHTSABER,
@@ -1181,9 +1181,7 @@ void NPC_BSGM_Attack( void )
 			//if ( NPC->client->ps.powerups[PW_GALAK_SHIELD] > 0 )
 			if (0)
 			{
-				#ifdef BASE_COMPAT
-					NPCS.NPC->client->ps.powerups[PW_BATTLESUIT] = level.time + ARMOR_EFFECT_TIME;
-				#endif
+				NPCS.NPC->client->ps.powerups[PW_BATTLESUIT] = level.time + ARMOR_EFFECT_TIME;
 				G_Damage( NPCS.NPC->enemy, NPCS.NPC, NPCS.NPC, NULL, NPCS.NPC->r.currentOrigin, 100, DAMAGE_NO_KNOCKBACK, MOD_UNKNOWN );
 			}
 			else
@@ -1208,9 +1206,7 @@ void NPC_BSGM_Attack( void )
 			//FIXME: debounce this?
 			NPCS.NPCInfo->touchedByPlayer = NULL;
 			//FIXME: some shield effect?
-			#ifdef BASE_COMPAT
-				NPCS.NPC->client->ps.powerups[PW_BATTLESUIT] = level.time + ARMOR_EFFECT_TIME;
-			#endif
+			NPCS.NPC->client->ps.powerups[PW_BATTLESUIT] = level.time + ARMOR_EFFECT_TIME;
 
 			VectorSubtract( NPCS.NPC->enemy->r.currentOrigin, NPCS.NPC->r.currentOrigin, smackDir );
 			smackDir[2] += 30;

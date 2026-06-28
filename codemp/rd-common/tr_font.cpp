@@ -26,6 +26,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "qcommon/stringed_ingame.h"
 
+cvar_t *r_fontSharpness;
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // This file is shared in the single and multiplayer codebases, so be CAREFUL WHAT YOU ADD/CHANGE!!!!!
@@ -146,7 +148,7 @@ struct ThaiCodes_t
 				//
 				// read the valid-codes table in...
 				//
-				int iBytesRead = ri->FS_ReadFile( sFILENAME_THAI_CODES, (void **) &piData );
+				int iBytesRead = ri.FS_ReadFile( sFILENAME_THAI_CODES, (void **) &piData );
 				if (iBytesRead > 0 && !(iBytesRead&3))	// valid length and multiple of 4 bytes long
 				{
 					int iTableEntries = iBytesRead / sizeof(int);
@@ -155,18 +157,18 @@ struct ThaiCodes_t
 					{
 						m_mapValidCodes[ piData[i] ] = i;	// convert MBCS code to sequential index...
 					}
-					ri->FS_FreeFile( piData );	// dispose of original
+					ri.FS_FreeFile( piData );	// dispose of original
 
 					// now read in the widths... (I'll keep these in a simple STL vector, so they'all disappear when the <map> entries do...
 					//
-					iBytesRead = ri->FS_ReadFile( sFILENAME_THAI_WIDTHS, (void **) &piData );
+					iBytesRead = ri.FS_ReadFile( sFILENAME_THAI_WIDTHS, (void **) &piData );
 					if (iBytesRead > 0 && !(iBytesRead&3) && iBytesRead>>2/*sizeof(int)*/ == iTableEntries)
 					{
 						for (int i=0; i<iTableEntries; i++)
 						{
 							m_viGlyphWidths.push_back( piData[i] );
 						}
-						ri->FS_FreeFile( piData );	// dispose of original
+						ri.FS_FreeFile( piData );	// dispose of original
 					}
 					else
 					{
@@ -191,6 +193,8 @@ struct ThaiCodes_t
 #define GLYPH_MAX_CHINESE_SHADERS	3
 #define GLYPH_MAX_THAI_SHADERS		3
 #define GLYPH_MAX_ASIAN_SHADERS		4	// this MUST equal the larger of the above defines
+
+#define MAX_FONT_VARIANTS 8
 
 class CFontInfo
 {
@@ -226,6 +230,11 @@ public:
 	float			m_fAltSBCSFontScaleFactor;	// -1, else amount to adjust returned values by to make them fit the master western font they're substituting for
 	bool			m_bIsFakeAlienLanguage;	// ... if true, don't process as MBCS or override as SBCS etc
 
+	CFontInfo		*m_variants[MAX_FONT_VARIANTS];
+	int				m_numVariants;
+	int				m_handle;
+	qboolean		m_isVariant;
+
 	CFontInfo(const char *fontName);
 //	CFontInfo(int fill) { memset(this, fill, sizeof(*this)); }	// wtf?
 	~CFontInfo(void) {}
@@ -246,6 +255,12 @@ public:
 	bool AsianGlyphsAvailable(void) const { return !!(m_hAsianShaders[0]); }
 
 	void UpdateAsianIfNeeded( bool bForceReEval = false);
+
+	int GetHandle();
+
+	void AddVariant(CFontInfo *variant);
+	int GetNumVariants();
+	CFontInfo *GetVariant(int index);
 };
 
 //================================================
@@ -844,6 +859,11 @@ qboolean Language_UsesSpaces(void)
 //  If path present, it's a special language hack for SBCS override languages, eg: "lcd/russian", which means
 //	  just treat the file as "russian", but with the "lcd" part ensuring we don't find a different registered russian font
 //
+static const char *FontDatPath( const char *_fontName ) {
+	static char fontName[MAX_QPATH];
+	sprintf( fontName,"fonts/%s.fontdat",COM_SkipPath(const_cast<char*>(_fontName)) );	// COM_SkipPath should take a const char *, but it's just possible people use it as a char * I guess, so I have to hack around like this <groan>
+	return fontName;
+}
 CFontInfo::CFontInfo(const char *_fontName)
 {
 	int			len, i;
@@ -852,8 +872,7 @@ CFontInfo::CFontInfo(const char *_fontName)
 
 	// remove any special hack name insertions...
 	//
-	char fontName[MAX_QPATH];
-	sprintf(fontName,"fonts/%s.fontdat",COM_SkipPath(const_cast<char*>(_fontName)));	// COM_SkipPath should take a const char *, but it's just possible people use it as a char * I guess, so I have to hack around like this <groan>
+	const char *fontName = FontDatPath( _fontName );
 
 	// clear some general things...
 	//
@@ -863,11 +882,12 @@ CFontInfo::CFontInfo(const char *_fontName)
 	m_iOriginalFontWhenSBCSOverriden = -1;
 	m_fAltSBCSFontScaleFactor = -1;
 	m_bIsFakeAlienLanguage = !strcmp(_fontName,"aurabesh");	// dont try and make SBCS or asian overrides for this
+	m_isVariant = qfalse;
 
-	len = ri->FS_ReadFile(fontName, NULL);
+	len = ri.FS_ReadFile(fontName, NULL);
 	if (len == sizeof(dfontdat_t))
 	{
-		ri->FS_ReadFile(fontName, &buff);
+		ri.FS_ReadFile(fontName, &buff);
 		fontdat = (dfontdat_t *)buff;
 
 		for(i = 0; i < GLYPH_COUNT; i++)
@@ -902,7 +922,7 @@ CFontInfo::CFontInfo(const char *_fontName)
             mDescender = mHeight - mAscender;
 		}
 
-		ri->FS_FreeFile(buff);
+		ri.FS_FreeFile(buff);
 	}
 	else
 	{
@@ -919,10 +939,11 @@ CFontInfo::CFontInfo(const char *_fontName)
 
 	// finished...
 	g_vFontArray.resize(g_iCurrentFontIndex + 1);
+	m_handle = g_iCurrentFontIndex;
 	g_vFontArray[g_iCurrentFontIndex++] = this;
 
 
-	if ( ri->Cvar_VariableIntegerValue( "com_buildScript" ) == 2)
+	if ( ri.Cvar_VariableIntegerValue( "com_buildScript" ) == 2)
 	{
 		Com_Printf( "com_buildScript(2): Registering foreign fonts...\n" );
 		static qboolean bDone = qfalse;	// Do this once only (for speed)...
@@ -942,12 +963,12 @@ CFontInfo::CFontInfo(const char *_fontName)
 				char sTemp[MAX_QPATH];
 
 				sprintf(sTemp,"fonts/%s.tga", g_SBCSOverrideLanguages[i].m_psName );
-				ri->FS_FOpenFileRead( sTemp, &f, qfalse );
-				if (f) ri->FS_FCloseFile( f );
+				ri.FS_FOpenFileRead( sTemp, &f, qfalse );
+				if (f) ri.FS_FCloseFile( f );
 
 				sprintf(sTemp,"fonts/%s.fontdat", g_SBCSOverrideLanguages[i].m_psName );
-				ri->FS_FOpenFileRead( sTemp, &f, qfalse );
-				if (f) ri->FS_FCloseFile( f );
+				ri.FS_FOpenFileRead( sTemp, &f, qfalse );
+				if (f) ri.FS_FCloseFile( f );
 			}
 
 			// asian MBCS override languages...
@@ -964,14 +985,14 @@ CFontInfo::CFontInfo(const char *_fontName)
 					{
 						// additional files needed for Thai language...
 						//
-						ri->FS_FOpenFileRead( sFILENAME_THAI_WIDTHS , &f, qfalse );
+						ri.FS_FOpenFileRead( sFILENAME_THAI_WIDTHS , &f, qfalse );
 						if (f) {
-							ri->FS_FCloseFile( f );
+							ri.FS_FCloseFile( f );
 						}
 
-						ri->FS_FOpenFileRead( sFILENAME_THAI_CODES, &f, qfalse );
+						ri.FS_FOpenFileRead( sFILENAME_THAI_CODES, &f, qfalse );
 						if (f) {
-							ri->FS_FCloseFile( f );
+							ri.FS_FCloseFile( f );
 						}
 					}
                     break;
@@ -982,14 +1003,32 @@ CFontInfo::CFontInfo(const char *_fontName)
 					Com_sprintf(sTemp,sizeof(sTemp), "fonts/%s_%d_1024_%d.tga", psLang, 1024/m_iAsianGlyphsAcross, i);
 
 					// RE_RegisterShaderNoMip( sTemp );	// don't actually need to load it, so...
-					ri->FS_FOpenFileRead( sTemp, &f, qfalse );
+					ri.FS_FOpenFileRead( sTemp, &f, qfalse );
 					if (f) {
-						ri->FS_FCloseFile( f );
+						ri.FS_FCloseFile( f );
 					}
 				}
 			}
 		}
 	}
+
+	m_numVariants = 0;
+}
+
+int CFontInfo::GetHandle() {
+	return m_handle;
+}
+
+void CFontInfo::AddVariant(CFontInfo * replacer) {
+	m_variants[m_numVariants++] = replacer;
+}
+
+int CFontInfo::GetNumVariants() {
+	return m_numVariants;
+}
+
+CFontInfo *CFontInfo::GetVariant(int index) {
+	return m_variants[index];
 }
 
 void CFontInfo::UpdateAsianIfNeeded( bool bForceReEval /* = false */ )
@@ -1032,7 +1071,7 @@ void CFontInfo::UpdateAsianIfNeeded( bool bForceReEval /* = false */ )
 							{
 								// failed to load a needed file, reset to English...
 								//
-								ri->Cvar_Set("se_language", "english");
+								ri.Cvar_Set("se_language", "english");
 								Com_Error( ERR_DROP, psFailureReason );
 							}
 						}
@@ -1123,6 +1162,30 @@ static CFontInfo *GetFont_Actual(int index)
 	return(NULL);
 }
 
+static CFontInfo *RE_Font_GetVariant(CFontInfo *font, float *scale) {
+	int variants = font->GetNumVariants();
+
+	if (variants > 0) {
+		CFontInfo *variant;
+		int requestedSize = font->GetPointSize() * *scale *
+			r_fontSharpness->value * (glConfig.vidHeight / SCREEN_HEIGHT);
+
+		if (requestedSize <= font->GetPointSize())
+			return font;
+
+		for (int i = 0; i < variants; i++) {
+			variant = font->GetVariant(i);
+
+			if (requestedSize <= variant->GetPointSize())
+				break;
+		}
+
+		*scale *= (float)font->GetPointSize() / variant->GetPointSize();
+		return variant;
+	}
+
+	return font;
+}
 
 // needed to add *piShader param because of multiple TPs,
 //	if not passed in, then I also skip S,T calculations for re-usable static asian glyphinfo struct...
@@ -1355,18 +1418,13 @@ CFontInfo *GetFont(int index)
 	return pFont;
 }
 
-
-int RE_Font_StrLenPixels(const char *psText, const int iFontHandle, const float fScale)
-{
-	float		fMaxWidth = 0.0f;
-	float		fThisWidth = 0.0f;
-	CFontInfo	*curfont;
-
-	curfont = GetFont(iFontHandle);
-	if(!curfont)
-	{
-		return(0);
+float RE_Font_StrLenPixelsNew( const char *psText, const int iFontHandle, const float fScaleIn ) {
+	float fScale = fScaleIn;
+	CFontInfo *curfont = GetFont(iFontHandle);
+	if ( !curfont ) {
+		return 0.0f;
 	}
+	curfont = RE_Font_GetVariant(curfont, &fScale);
 
 	float fScaleAsian = fScale;
 	if (Language_IsAsian() && fScale > 0.7f )
@@ -1374,42 +1432,52 @@ int RE_Font_StrLenPixels(const char *psText, const int iFontHandle, const float 
 		fScaleAsian = fScale * 0.75f;
 	}
 
-	while(*psText)
-	{
+	float maxLineWidth = 0.0f;
+	float thisLineWidth = 0.0f;
+	while ( *psText ) {
 		int iAdvanceCount;
 		unsigned int uiLetter = AnyLanguage_ReadCharFromString( psText, &iAdvanceCount, NULL );
 		psText += iAdvanceCount;
 
-		if (uiLetter == '^' )
-		{
-			if (*psText >= '0' &&
-				*psText <= '9')
-			{
+		if ( uiLetter == '^' ) {
+			if ( *psText >= '0' && *psText <= '9' ) {
 				uiLetter = AnyLanguage_ReadCharFromString( psText, &iAdvanceCount, NULL );
 				psText += iAdvanceCount;
 				continue;
 			}
 		}
 
-		if (uiLetter == 0x0A)
-		{
-			fThisWidth = 0.0f;
+		if ( uiLetter == '\n' ) {
+			thisLineWidth = 0.0f;
 		}
-		else
-		{
-			int iPixelAdvance = curfont->GetLetterHorizAdvance( uiLetter );
+		else {
+			float iPixelAdvance = (float)curfont->GetLetterHorizAdvance( uiLetter );
 
 			float fValue = iPixelAdvance * ((uiLetter > (unsigned)g_iNonScaledCharRange) ? fScaleAsian : fScale);
-			fThisWidth += curfont->mbRoundCalcs ? Round( fValue ) : fValue;
-			if (fThisWidth > fMaxWidth)
-			{
-				fMaxWidth = fThisWidth;
+
+			if ( r_aspectCorrectFonts->integer == 1 ) {
+				fValue *= ((float)(SCREEN_WIDTH * glConfig.vidHeight) / (float)(SCREEN_HEIGHT * glConfig.vidWidth));
+			}
+			else if ( r_aspectCorrectFonts->integer == 2 ) {
+				fValue = ceilf(
+					fValue * ((float)(SCREEN_WIDTH * glConfig.vidHeight) / (float)(SCREEN_HEIGHT * glConfig.vidWidth))
+				);
+			}
+			thisLineWidth += curfont->mbRoundCalcs
+				? roundf( fValue )
+				: (r_aspectCorrectFonts->integer == 2)
+					? ceilf( fValue )
+					: fValue;
+			if ( thisLineWidth > maxLineWidth ) {
+				maxLineWidth = thisLineWidth;
 			}
 		}
 	}
+	return maxLineWidth;
+}
 
-	// using ceil because we need to make sure that all the text is contained within the integer pixel width we're returning
-	return (int)ceilf(fMaxWidth);
+int RE_Font_StrLenPixels( const char *psText, const int iFontHandle, const float fScale ) {
+	return (int)ceilf( RE_Font_StrLenPixelsNew( psText, iFontHandle, fScale ) );
 }
 
 // not really a font function, but keeps naming consistant...
@@ -1451,14 +1519,17 @@ int RE_Font_StrLenChars(const char *psText)
 	return iCharCount;
 }
 
-int RE_Font_HeightPixels(const int iFontHandle, const float fScale)
+int RE_Font_HeightPixels(const int iFontHandle, const float fScaleIn)
 {
+	float fScale = fScaleIn;
 	CFontInfo	*curfont;
 
 	curfont = GetFont(iFontHandle);
 	if(curfont)
 	{
-		float fValue = curfont->GetPointSize() * fScale;
+		float fValue;
+		curfont = RE_Font_GetVariant(curfont, &fScale);
+		fValue = curfont->GetPointSize() * fScale;
 		return curfont->mbRoundCalcs ? Round(fValue) : fValue;
 	}
 	return(0);
@@ -1466,19 +1537,21 @@ int RE_Font_HeightPixels(const int iFontHandle, const float fScale)
 
 // iMaxPixelWidth is -1 for "all of string", else pixel display count...
 //
-void RE_Font_DrawString(int ox, int oy, const char *psText, const float *rgba, const int iFontHandle, int iMaxPixelWidth, const float fScale)
+void RE_Font_DrawString(int ox, int oy, const char *psText, const float *rgba, const int iFontHandleIn, int iMaxPixelWidth, const float fScaleIn)
 {
 	static qboolean gbInShadow = qfalse;	// MUST default to this
 	float				fox, foy, fx, fy;
 	int					colour, offset;
 	const glyphInfo_t	*pLetter;
 	qhandle_t			hShader;
+	float				fScale = fScaleIn;
+	int					iFontHandle = iFontHandleIn;
 
 	assert (psText);
 
 	if(iFontHandle & STYLE_BLINK)
 	{
-		if((ri->Milliseconds() >> 7) & 1)
+		if((ri.Milliseconds() >> 7) & 1)
 		{
 			return;
 		}
@@ -1534,6 +1607,8 @@ void RE_Font_DrawString(int ox, int oy, const char *psText, const float *rgba, c
 	{
 		return;
 	}
+	curfont = RE_Font_GetVariant(curfont, &fScale);
+	iFontHandle = curfont->GetHandle() | (iFontHandle & ~SET_MASK);
 
 	float fScaleAsian = fScale;
 	float fAsianYAdjust = 0.0f;
@@ -1652,8 +1727,17 @@ void RE_Font_DrawString(int ox, int oy, const char *psText, const float *rgba, c
 								//lastcolour.c,
 								hShader							// qhandle_t hShader
 								);
-
-				fx += fAdvancePixels;
+				if ( r_aspectCorrectFonts->integer == 1 ) {
+					fx += fAdvancePixels
+						* ((float)(SCREEN_WIDTH * glConfig.vidHeight) / (float)(SCREEN_HEIGHT * glConfig.vidWidth));
+				}
+				else if ( r_aspectCorrectFonts->integer == 2 ) {
+					fx += ceilf( fAdvancePixels
+						* ((float)(SCREEN_WIDTH * glConfig.vidHeight) / (float)(SCREEN_HEIGHT * glConfig.vidWidth)) );
+				}
+				else {
+					fx += fAdvancePixels;
+				}
 			}
 			break;
 		}
@@ -1661,7 +1745,7 @@ void RE_Font_DrawString(int ox, int oy, const char *psText, const float *rgba, c
 	//let it remember the old color //RE_SetColor(NULL);
 }
 
-int RE_RegisterFont(const char *psName)
+static int RE_RegisterFont_Real(const char *psName)
 {
 	FontIndexMap_t::iterator it = g_mapFontIndexes.find(psName);
 	if (it != g_mapFontIndexes.end() )
@@ -1690,10 +1774,42 @@ int RE_RegisterFont(const char *psName)
 	return 0;
 }
 
+int RE_RegisterFont(const char *psName) {
+	int oriFontHandle = RE_RegisterFont_Real(psName);
+	if (oriFontHandle) {
+		CFontInfo *oriFont = GetFont_Actual(oriFontHandle);
+
+		if (oriFont->GetNumVariants() == 0) {
+			for (int i = 0; i < MAX_FONT_VARIANTS; i++) {
+				const char *variantName = va( "%s_sharp%i", psName, i + 1 );
+				const char *fontDatPath = FontDatPath( variantName );
+				if ( ri.FS_ReadFile(fontDatPath, NULL) > 0 ) {
+					int replacerFontHandle = RE_RegisterFont_Real(variantName);
+					if (replacerFontHandle) {
+						CFontInfo *replacerFont = GetFont_Actual(replacerFontHandle);
+						replacerFont->m_isVariant = qtrue;
+						oriFont->AddVariant(replacerFont);
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
+	} else {
+		ri.Printf( PRINT_WARNING, "RE_RegisterFont: Couldn't find font %s\n", psName );
+	}
+
+	return oriFontHandle;
+}
+
 void R_InitFonts(void)
 {
 	g_iCurrentFontIndex = 1;			// entry 0 is reserved for "missing/invalid"
 	g_iNonScaledCharRange = INT_MAX;	// default all chars to have no special scaling (other than user supplied)
+
+	r_fontSharpness = ri.Cvar_Get( "r_fontSharpness", "1", CVAR_ARCHIVE_ND, "" );
 }
 
 /*
@@ -1742,6 +1858,8 @@ void R_ReloadFonts_f(void)
 	for (iFontToFind = 1; iFontToFind < g_iCurrentFontIndex; iFontToFind++)
 	{
 		FontIndexMap_t::iterator it;
+		CFontInfo *font = GetFont( iFontToFind );
+		if ( font && font->m_isVariant ) continue;
 		for (it = g_mapFontIndexes.begin(); it != g_mapFontIndexes.end(); ++it)
 		{
 			if (iFontToFind == (*it).second)

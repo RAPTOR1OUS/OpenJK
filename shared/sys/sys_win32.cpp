@@ -19,6 +19,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "qcommon/game_version.h"
 #include "sys_local.h"
 #include <direct.h>
 #include <io.h>
@@ -37,7 +38,7 @@ static UINT timerResolution = 0;
 Sys_Basename
 ==============
 */
-const char *Sys_Basename( char *path )
+const char *Sys_Basename( const char *path )
 {
 	static char base[ MAX_OSPATH ] = { 0 };
 	int length;
@@ -67,7 +68,7 @@ const char *Sys_Basename( char *path )
 Sys_Dirname
 ==============
 */
-const char *Sys_Dirname( char *path )
+const char *Sys_Dirname( const char *path )
 {
 	static char dir[ MAX_OSPATH ] = { 0 };
 	int length;
@@ -156,7 +157,7 @@ char *Sys_GetCurrentUser( void )
 */
 char *Sys_DefaultHomePath( void )
 {
-#if defined(_PORTABLE_VERSION)
+#if defined(BUILD_PORTABLE)
 	Com_Printf( "Portable install requested, skipping homepath support\n" );
 	return NULL;
 #else
@@ -167,7 +168,7 @@ char *Sys_DefaultHomePath( void )
 		if( !SUCCEEDED( SHGetFolderPath( NULL, CSIDL_PERSONAL, NULL, 0, homeDirectory ) ) )
 		{
 			Com_Printf( "Unable to determine your home directory.\n" );
-			return false;
+			return NULL;
 		}
 
 		Com_sprintf( homePath, sizeof( homePath ), "%s%cMy Games%c", homeDirectory, PATH_SEP, PATH_SEP );
@@ -379,6 +380,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	intptr_t	findhandle;
 	int			flag;
 	int			i;
+	int			extLen;
 
 	if (filter) {
 
@@ -412,6 +414,8 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 		flag = _A_SUBDIR;
 	}
 
+	extLen = strlen( extension );
+
 	Com_sprintf( search, sizeof(search), "%s\\*%s", directory, extension );
 
 	// search
@@ -425,6 +429,14 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 
 	do {
 		if ( (!wantsubs && flag ^ ( findinfo.attrib & _A_SUBDIR )) || (wantsubs && findinfo.attrib & _A_SUBDIR) ) {
+			if (*extension) {
+				if ( strlen( findinfo.name ) < extLen ||
+					Q_stricmp(
+						findinfo.name + strlen( findinfo.name ) - extLen,
+						extension ) ) {
+					continue; // didn't match
+				}
+			}
 			if ( nfiles == MAX_FOUND_FILES - 1 ) {
 				break;
 			}
@@ -494,12 +506,12 @@ UnpackDLLResult Sys_UnpackDLL(const char *name)
 {
 	UnpackDLLResult result = {};
 	void *data;
-	int len = FS_ReadFile(name, &data);
+	long len = FS_ReadFile(name, &data);
 
 	if (len >= 1)
-	{ 
+	{
 		if (FS_FileIsInPAK(name, NULL) == 1)
-		{ 
+		{
 			char *tempFileName;
 			if ( FS_WriteToTemporaryFile(data, len, &tempFileName) )
 			{
@@ -530,7 +542,12 @@ Sys_PlatformInit
 Platform-specific initialization
 ================
 */
-void Sys_PlatformInit( void ) {
+
+// Max open file descriptors. Mostly used by pk3 files with
+// MAX_SEARCH_PATHS limit.
+#define MAX_OPEN_FILES	4096
+
+void Sys_PlatformInit( int argc, char *argv[] ) {
 	TIMECAPS ptc;
 	if ( timeGetDevCaps( &ptc, sizeof( ptc ) ) == MMSYSERR_NOERROR )
 	{
@@ -546,6 +563,21 @@ void Sys_PlatformInit( void ) {
 	}
 	else
 		timerResolution = 0;
+
+	// raise open file limit to allow more pk3 files
+	int maxfds = MAX_OPEN_FILES;
+
+	for (int i = 1; i + 1 < argc; i++) {
+		if (!Q_stricmp(argv[i], "-maxfds")) {
+			maxfds = atoi(argv[i + 1]);
+		}
+	}
+
+	maxfds = _setmaxstdio(maxfds);
+
+	if (maxfds == -1) {
+		Com_Printf("Warning: Failed to increase open file limit. %s\n", strerror(errno));
+	}
 }
 
 /*

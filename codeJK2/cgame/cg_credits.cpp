@@ -42,7 +42,7 @@ vec4_t gv4Color = {0};
 struct StringAndSize_t
 {
 	int iStrLenPixels;
-	string str;
+	std::string str;
 
 	StringAndSize_t()
 	{
@@ -86,7 +86,7 @@ struct CreditCard_t
 {
 	int						iTime;
 	StringAndSize_t			strTitle;
-	vector<StringAndSize_t> vstrText;
+	std::vector<StringAndSize_t> vstrText;
 
 	CreditCard_t()
 	{
@@ -98,12 +98,12 @@ struct CreditLine_t
 {
 	int						iLine;
 	StringAndSize_t			strText;
-	vector<StringAndSize_t> vstrText;
+	std::vector<StringAndSize_t> vstrText;
 	bool					bDotted;
 };
 
-typedef list <CreditLine_t>		CreditLines_t;
-typedef list <CreditCard_t>		CreditCards_t;
+typedef std::list <CreditLine_t>		CreditLines_t;
+typedef std::list <CreditCard_t>		CreditCards_t;
 
 struct CreditData_t
 {
@@ -112,9 +112,9 @@ struct CreditData_t
 	CreditCards_t CreditCards;
 	CreditLines_t CreditLines;
 
-	bool Running(void)
+	qboolean Running(void)
 	{
-		return !!( CreditCards.size() || CreditLines.size() );
+		return (qboolean)(CreditCards.size() || CreditLines.size());
 	}
 };
 
@@ -126,7 +126,7 @@ static const char *Capitalize( const char *psTest )
 	static char sTemp[MAX_LINE_BYTES];
 
 	Q_strncpyz(sTemp, psTest, sizeof(sTemp));
-	
+
 	if (!cgi_Language_IsAsian())
 	{
 		Q_strupr(sTemp);	// capitalise titles (if not asian!!!!)
@@ -136,7 +136,7 @@ static const char *Capitalize( const char *psTest )
 }
 
 static bool CountsAsWhiteSpaceForCaps( char c )
-{ 
+{
 	return !!(isspace(c) || c == '-' || c == '.' || c == '(' || c == ')');
 }
 static const char *UpperCaseFirstLettersOnly( const char *psTest )
@@ -144,7 +144,7 @@ static const char *UpperCaseFirstLettersOnly( const char *psTest )
 	static char sTemp[MAX_LINE_BYTES];
 
 	Q_strncpyz(sTemp, psTest, sizeof(sTemp));
-	
+
 	if (!cgi_Language_IsAsian())
 	{
 		Q_strlwr(sTemp);
@@ -182,13 +182,13 @@ static const char *UpperCaseFirstLettersOnly( const char *psTest )
 	return sTemp;
 }
 
-static const char *GetSubString(string &strResult)
+static const char *GetSubString(std::string &strResult)
 {
 	static char sTemp[MAX_LINE_BYTES];
 
 	if (!strlen(strResult.c_str()))
 		return NULL;
-	
+
 	Q_strncpyz(sTemp,strResult.c_str(),sizeof(sTemp));
 
 	char *psSemiColon = strchr(sTemp,';');
@@ -210,20 +210,13 @@ static const char *GetSubString(string &strResult)
 
 // sort entries by their last name (starts at back of string and moves forward until start or just before whitespace)
 // ...
-static int SortBySurname(const void *elem1, const void *elem2)
+static bool SortBySurname(const StringAndSize_t &str1, const StringAndSize_t &str2)
 {
-	StringAndSize_t *p1 = (StringAndSize_t *) elem1;
-	StringAndSize_t *p2 = (StringAndSize_t *) elem2;
+	std::string::const_reverse_iterator rstart1 = std::find_if(str1.str.rbegin(), str1.str.rend(), isspace);
+	std::string::const_reverse_iterator rstart2 = std::find_if(str2.str.rbegin(), str2.str.rend(), isspace);
 
-	const char *psSurName1 = p1->c_str() + (strlen( p1->c_str() ) - 1);
-	const char *psSurName2 = p2->c_str() + (strlen( p2->c_str() ) - 1);
 
-	while (psSurName1 > p1->c_str() && !isspace(*psSurName1)) psSurName1--;
-	while (psSurName2 > p2->c_str() && !isspace(*psSurName2)) psSurName2--;
-	if (isspace(*psSurName1)) psSurName1++;
-	if (isspace(*psSurName2)) psSurName2++;
-		
-	return Q_stricmp(psSurName1, psSurName2);
+	return Q_stricmp(&*rstart1.base(), &*rstart2.base()) < 0;
 }
 
 
@@ -238,14 +231,14 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 	memcpy(gv4Color,pv4Color,sizeof(gv4Color));	// memcpy so we can poke into alpha channel
 
 	// first, ask the strlen of the final string...
-	//	
+	//
 	int iStrLen = cgi_SP_GetStringTextString( psStripReference, NULL, 0 );
 	if (!iStrLen)
 	{
 #ifndef FINAL_BUILD
 		Com_Printf("WARNING: CG_Credits_Init(): invalid text key :'%s'\n", psStripReference);
 #endif
-		return; 
+		return;
 	}
 	//
 	// malloc space to hold it...
@@ -253,7 +246,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 	char *psMallocText = (char *) cgi_Z_Malloc( iStrLen+1, TAG_TEMP_WORKSPACE );
 	//
 	// now get the string...
-	//	
+	//
 	iStrLen = cgi_SP_GetStringTextString( psStripReference, psMallocText, iStrLen+1 );
 	//ensure we found a match
 	if (!iStrLen)
@@ -263,7 +256,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 #ifndef FINAL_BUILD
 		Com_Printf("WARNING: CG_Credits_Init(): invalid text key :'%s'\n", psStripReference);
 #endif
-		return; 
+		return;
 	}
 
 	// read whole string in and process as cards, lines etc...
@@ -285,7 +278,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 	while (*psTextParse != '\0')
 	{
 		// read a line...
-		//	
+		//
 		char sLine[MAX_LINE_BYTES];
 			 sLine[0]='\0';
 		qboolean bWasCommand = qtrue;
@@ -390,23 +383,23 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 			switch (eMode)
 			{
 				case eNothing:	break;
-				case eLine:		
+				case eLine:
 				{
 					CreditLine_t	CreditLine;
-									CreditLine.iLine	= iLineNumber++;									
+									CreditLine.iLine	= iLineNumber++;
 									CreditLine.strText	= sLine;
 
 					CreditData.CreditLines.push_back( CreditLine );
 				}
 				break;
 
-				case eDotEntry:	
+				case eDotEntry:
 				{
 					CreditLine_t	CreditLine;
 									CreditLine.iLine	= iLineNumber;
 									CreditLine.bDotted	= true;
 
-					string strResult(sLine);
+					std::string strResult(sLine);
 					const char *p;
 					while ((p=GetSubString(strResult)) != NULL)
 					{
@@ -424,7 +417,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 					{
 						// sort entries RHS dotted entries by alpha...
 						//
-						qsort(&CreditLine.vstrText[0], CreditLine.vstrText.size(), sizeof(CreditLine.vstrText[0]), SortBySurname);
+						std::sort( CreditLine.vstrText.begin(), CreditLine.vstrText.end(), SortBySurname );
 
 						CreditData.CreditLines.push_back( CreditLine );
 						iLineNumber += CreditLine.vstrText.size();
@@ -432,7 +425,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 				}
 				break;
 
-				case eTitle:	
+				case eTitle:
 				{
 					iLineNumber++;	// leading blank line
 
@@ -448,8 +441,8 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 				case eCard:
 				{
 					CreditCard_t CreditCard;
-	
-					string strResult(sLine);
+
+					std::string strResult(sLine);
 					const char *p;
 					while ((p=GetSubString(strResult)) != NULL)
 					{
@@ -467,7 +460,7 @@ void CG_Credits_Init( const char *psStripReference, vec4_t *pv4Color )
 					{
 						// sort entries by alpha...
 						//
-						qsort(&CreditCard.vstrText[0], CreditCard.vstrText.size(), sizeof(CreditCard.vstrText[0]), SortBySurname);
+						std::sort( CreditCard.vstrText.begin(), CreditCard.vstrText.end(), SortBySurname );
 
 						CreditData.CreditCards.push_back(CreditCard);
 					}

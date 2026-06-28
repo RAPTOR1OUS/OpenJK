@@ -26,6 +26,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 typedef unsigned int GLuint;
 
 #include "qcommon/qfiles.h"
+#include "rd-common/tr_common.h"
 #include "rd-common/tr_public.h"
 #include "ghoul2/ghoul2_shared.h" //rwwRMG - added
 
@@ -840,6 +841,42 @@ typedef struct world_s {
 
 //======================================================================
 
+typedef enum {
+	MOD_BAD,
+	MOD_BRUSH,
+	MOD_MESH,
+/*
+Ghoul2 Insert Start
+*/
+   	MOD_MDXM,
+	MOD_MDXA
+/*
+Ghoul2 Insert End
+*/
+
+} modtype_t;
+
+typedef struct model_s {
+	char		name[MAX_QPATH];
+	modtype_t	type;
+	int			index;				// model = tr.models[model->mod_index]
+
+	int			dataSize;			// just for listing purposes
+	bmodel_t	*bmodel;			// only if type == MOD_BRUSH
+	md3Header_t	*md3[MD3_MAX_LODS];	// only if type == MOD_MESH
+/*
+Ghoul2 Insert Start
+*/
+	mdxmHeader_t *mdxm;				// only if type == MOD_GL2M which is a GHOUL II Mesh file NOT a GHOUL II animation file
+	mdxaHeader_t *mdxa;				// only if type == MOD_GL2A which is a GHOUL II Animation file
+/*
+Ghoul2 Insert End
+*/
+	unsigned char	numLods;
+	bool			bspInstance;			// model is a bsp instance
+} model_t;
+
+
 #define	MAX_MOD_KNOWN	1024
 
 void		R_ModelInit (void);
@@ -1228,6 +1265,9 @@ extern	cvar_t	*r_noServerGhoul2;
 /*
 Ghoul2 Insert End
 */
+
+extern	cvar_t	*r_patchStitching;
+
 //====================================================================
 
 float R_NoiseGet4f( float x, float y, float z, float t );
@@ -1535,8 +1575,6 @@ CURVE TESSELATION
 ============================================================
 */
 
-#define PATCH_STITCHING
-
 srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 								drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE] );
 
@@ -1808,7 +1846,6 @@ extern	int		max_polyverts;
 extern	backEndData_t	*backEndData;
 
 
-void *R_GetCommandBuffer( int bytes );
 void RB_ExecuteRenderCommands( const void *data );
 
 void R_IssuePendingRenderCommands( void );
@@ -1851,7 +1888,5 @@ typedef struct decalPoly_s
 	polyVert_t			verts[MAX_VERTS_ON_DECAL_POLY];
 
 } decalPoly_t;
-
-extern refimport_t *ri;
 
 qboolean ShaderHashTableExists(void);

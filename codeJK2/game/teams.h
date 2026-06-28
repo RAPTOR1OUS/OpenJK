@@ -27,19 +27,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 typedef enum //# team_e
 {
 	TEAM_FREE,			// caution, some code checks a team_t via "if (!team_t_varname)" so I guess this should stay as entry 0, great or what? -slc
-//	TEAM_STARFLEET,
-//	TEAM_BORG,
-//	TEAM_PARASITE,
-//	TEAM_SCAVENGERS,
-//	TEAM_KLINGON,
-//	TEAM_MALON,
-//	TEAM_HIROGEN,
-//	TEAM_IMPERIAL,
-//	TEAM_STASIS,
-//	TEAM_8472,
-//	TEAM_BOTS,
-//	TEAM_FORGE,
-//	TEAM_DISGUISE,
 	TEAM_PLAYER,
 	TEAM_ENEMY,
 	TEAM_NEUTRAL,	// most droids are team_neutral, there are some exceptions like Probe,Seeker,Interrogator
@@ -49,15 +36,15 @@ typedef enum //# team_e
 } team_t;
 
 // This list is made up from the model directories, this MUST be in the same order as the ClassNames array in NPC_stats.cpp
-typedef enum 
+typedef enum
 {
 	CLASS_NONE,				// hopefully this will never be used by an npc, just covering all bases
 	CLASS_ATST,				// technically droid...
 	CLASS_BARTENDER,
-	CLASS_BESPIN_COP,		
+	CLASS_BESPIN_COP,
 	CLASS_CLAW,
 	CLASS_COMMANDO,
-	CLASS_DESANN,			
+	CLASS_DESANN,
 	CLASS_FISH,
 	CLASS_FLIER2,
 	CLASS_GALAK,
@@ -67,18 +54,18 @@ typedef enum
 	CLASS_HOWLER,
 	CLASS_IMPERIAL,
 	CLASS_IMPWORKER,
-	CLASS_INTERROGATOR,		// droid 
-	CLASS_JAN,				
-	CLASS_JEDI,				
-	CLASS_KYLE,				
-	CLASS_LANDO,			
+	CLASS_INTERROGATOR,		// droid
+	CLASS_JAN,
+	CLASS_JEDI,
+	CLASS_KYLE,
+	CLASS_LANDO,
 	CLASS_LIZARD,
-	CLASS_LUKE,				
+	CLASS_LUKE,
 	CLASS_MARK1,			// droid
 	CLASS_MARK2,			// droid
 	CLASS_GALAKMECH,		// droid
 	CLASS_MINEMONSTER,
-	CLASS_MONMOTHA,			
+	CLASS_MONMOTHA,
 	CLASS_MORGANKATARN,
 	CLASS_MOUSE,			// droid
 	CLASS_MURJJ,
@@ -102,7 +89,7 @@ typedef enum
 	CLASS_TRANDOSHAN,
 	CLASS_UGNAUGHT,
 	CLASS_WEEQUAY,
-	
+
 	CLASS_NUM_CLASSES
 } class_t;
 

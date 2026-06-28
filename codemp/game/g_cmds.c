@@ -43,24 +43,28 @@ DeathmatchScoreboardMessage
 ==================
 */
 void DeathmatchScoreboardMessage( gentity_t *ent ) {
-	char		entry[1024];
-	char		string[1400];
-	int			stringlength;
+	char		entry[256];
+	char		string[MAX_STRING_CHARS-1];
+	int			stringlength, prefix;
 	int			i, j;
 	gclient_t	*cl;
 	int			numSorted, scoreFlags, accuracy, perfect;
 
 	// send the latest information on all clients
-	string[0] = 0;
+	string[0] = '\0';
 	stringlength = 0;
 	scoreFlags = 0;
 
 	numSorted = level.numConnectedClients;
 
+	// This is dumb that we are capping to 20 clients but support 32 in server
 	if (numSorted > MAX_CLIENT_SCORE_SEND)
 	{
 		numSorted = MAX_CLIENT_SCORE_SEND;
 	}
+
+	// estimate prefix length to avoid oversize of final string
+	prefix = Com_sprintf( entry, sizeof(entry), "scores %i %i %i", level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE], level.numConnectedClients );
 
 	for (i=0 ; i < numSorted ; i++) {
 		int		ping;
@@ -81,7 +85,7 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 		}
 		perfect = ( cl->ps.persistant[PERS_RANK] == 0 && cl->ps.persistant[PERS_KILLED] == 0 ) ? 1 : 0;
 
-		Com_sprintf (entry, sizeof(entry),
+		j = Com_sprintf (entry, sizeof(entry),
 			" %i %i %i %i %i %i %i %i %i %i %i %i %i %i", level.sortedClients[i],
 			cl->ps.persistant[PERS_SCORE], ping, (level.time - cl->pers.enterTime)/60000,
 			scoreFlags, g_entities[level.sortedClients[i]].s.powerups, accuracy,
@@ -92,17 +96,15 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
 			cl->ps.persistant[PERS_ASSIST_COUNT],
 			perfect,
 			cl->ps.persistant[PERS_CAPTURES]);
-		j = strlen(entry);
-		if (stringlength + j > 1022)
+
+		if (stringlength + j + prefix >= sizeof(string))
 			break;
-		strcpy (string + stringlength, entry);
+
+		strcpy( string + stringlength, entry );
 		stringlength += j;
 	}
 
-	//still want to know the total # of clients
-	i = level.numConnectedClients;
-
-	trap->SendServerCommand( ent-g_entities, va("scores %i %i %i%s", i,
+	trap->SendServerCommand( ent-g_entities, va("scores %i %i %i%s", level.numConnectedClients,
 		level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE],
 		string ) );
 }
@@ -1853,7 +1855,7 @@ void Cmd_Where_f( gentity_t *ent ) {
 	//trap->SendServerCommand( ent-g_entities, va("print \"%s\n\"", vtos( ent->s.origin ) ) );
 }
 
-static const char *gameNames[] = {
+static const char *gameNames[GT_MAX_GAME_TYPE] = {
 	"Free For All",
 	"Holocron FFA",
 	"Jedi Master",
@@ -2356,6 +2358,12 @@ void Cmd_CallTeamVote_f( gentity_t *ent ) {
 	char	arg1[MAX_CVAR_VALUE_STRING] = {0};
 	char	arg2[MAX_CVAR_VALUE_STRING] = {0};
 
+	if ( g_gametype.integer < GT_TEAM )
+	{
+		trap->SendServerCommand( ent-g_entities, "print \"Cannot call a team vote in a non-team gametype!\n\"" );
+		return;
+	}
+
 	if ( team == TEAM_RED )
 		cs_offset = 0;
 	else if ( team == TEAM_BLUE )
@@ -2755,6 +2763,22 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	{
 		return;
 	}
+
+	if ( level.intermissionQueued || level.intermissiontime )
+	{
+		trap->SendServerCommand( ent-g_entities, va( "print \"%s (saberAttackCycle)\n\"", G_GetStringEdString( "MP_SVGAME", "CANNOT_TASK_INTERMISSION" ) ) );
+		return;
+	}
+
+	if ( ent->health <= 0
+			|| ent->client->tempSpectate >= level.time
+			|| ent->client->sess.sessionTeam == TEAM_SPECTATOR )
+	{
+		trap->SendServerCommand( ent-g_entities, va( "print \"%s\n\"", G_GetStringEdString( "MP_SVGAME", "MUSTBEALIVE" ) ) );
+		return;
+	}
+
+
 	if ( ent->client->ps.weapon != WP_SABER )
 	{
         return;
@@ -3242,6 +3266,7 @@ qboolean TryGrapple(gentity_t *ent)
 			ent->client->ps.legsTimer = ent->client->ps.torsoTimer;
 		}
 		ent->client->ps.weaponTime = ent->client->ps.torsoTimer;
+		ent->client->dangerTime = level.time;
 		return qtrue;
 	}
 
@@ -3364,7 +3389,6 @@ int cmdcmp( const void *a, const void *b ) {
 	return Q_stricmp( (const char *)a, ((command_t*)b)->name );
 }
 
-/* This array MUST be sorted correctly by alphabetical name field */
 command_t commands[] = {
 	{ "addbot",				Cmd_AddBot_f,				0 },
 	{ "callteamvote",		Cmd_CallTeamVote_f,			CMD_NOINTERMISSION },
@@ -3426,7 +3450,7 @@ void ClientCommand( int clientNum ) {
 		return;
 	//end rww
 
-	command = (command_t *)bsearch( cmd, commands, numCommands, sizeof( commands[0] ), cmdcmp );
+	command = (command_t *)Q_LinearSearch( cmd, commands, numCommands, sizeof( commands[0] ), cmdcmp );
 	if ( !command )
 	{
 		trap->SendServerCommand( clientNum, va( "print \"Unknown command %s\n\"", cmd ) );

@@ -253,23 +253,35 @@ static void IN_TranslateNumpad( SDL_Keysym *keysym, fakeAscii_t *key )
 
 /*
 ===============
+IN_ModTogglesConsole
+===============
+*/
+static qboolean IN_ModTogglesConsole( int mod ) {
+	switch (cl_consoleShiftRequirement->integer) {
+	case 0:
+		return qtrue;
+	case 2:
+		return (qboolean)!!(mod & KMOD_SHIFT);
+	case 1:
+	default:
+		return (qboolean)((mod & KMOD_SHIFT) || (Key_GetCatcher() & KEYCATCH_CONSOLE));
+	}
+}
+
+/*
+===============
 IN_TranslateSDLToJKKey
 ===============
 */
 static fakeAscii_t IN_TranslateSDLToJKKey( SDL_Keysym *keysym, qboolean down ) {
 	fakeAscii_t key = A_NULL;
 
-	if( keysym->sym >= SDLK_SPACE && keysym->sym < SDLK_DELETE )
-	{
-		// These happen to match the ASCII chars
-		// SDL2 only passes ASCII letters as lowercase, but the UI etc expects uppercase
-		if ( keysym->sym >= SDLK_a && keysym->sym <= SDLK_z )
-		{
-			key = (fakeAscii_t)('A' + (keysym->sym - SDLK_a));
-		}
-		else
-			key = (fakeAscii_t)keysym->sym;
-	}
+	if ( keysym->sym >= A_LOW_A && keysym->sym <= A_LOW_Z )
+		key = (fakeAscii_t)(A_CAP_A + (keysym->sym - A_LOW_A));
+	else if ( keysym->sym >= A_LOW_AGRAVE && keysym->sym <= A_LOW_THORN && keysym->sym != A_DIVIDE )
+		key = (fakeAscii_t)(A_CAP_AGRAVE + (keysym->sym - A_LOW_AGRAVE));
+	else if ( keysym->sym >= SDLK_SPACE && keysym->sym < SDLK_DELETE )
+		key = (fakeAscii_t)keysym->sym;
 	else
 	{
 		IN_TranslateNumpad( keysym, &key );
@@ -377,10 +389,22 @@ static fakeAscii_t IN_TranslateSDLToJKKey( SDL_Keysym *keysym, qboolean down ) {
 	if( in_keyboardDebug->integer )
 		IN_PrintKey( keysym, key, down );
 
-	if( IN_IsConsoleKey( key, 0 ) )
+	if ( cl_consoleUseScanCode->integer )
 	{
-		// Console keys can't be bound or generate characters
-		key = A_CONSOLE;
+		if ( keysym->scancode == SDL_SCANCODE_GRAVE )
+		{
+			if ( IN_ModTogglesConsole(keysym->mod) ) {
+				key = A_CONSOLE;
+			}
+		}
+	}
+	else
+	{
+		if ( IN_IsConsoleKey( key, 0 ) )
+		{
+			// Console keys can't be bound or generate characters
+			key = A_CONSOLE;
+		}
 	}
 
 	return key;
@@ -428,10 +452,13 @@ static void IN_ActivateMouse( void )
 	{
 		if( in_nograb->modified || !mouseActive )
 		{
-			if( in_nograb->integer )
+			if( in_nograb->integer ) {
+				SDL_SetRelativeMouseMode( SDL_FALSE );
 				SDL_SetWindowGrab( SDL_window, SDL_FALSE );
-			else
+			} else {
+				SDL_SetRelativeMouseMode( SDL_TRUE );
 				SDL_SetWindowGrab( SDL_window, SDL_TRUE );
+			}
 
 			in_nograb->modified = qfalse;
 		}
@@ -553,13 +580,13 @@ static void IN_InitJoystick( void )
 		return;
 	}
 
-	in_joystickNo = Cvar_Get( "in_joystickNo", "0", CVAR_ARCHIVE );
+	in_joystickNo = Cvar_Get( "in_joystickNo", "0", CVAR_ARCHIVE_ND );
 	if( in_joystickNo->integer < 0 || in_joystickNo->integer >= total )
 		Cvar_Set( "in_joystickNo", "0" );
 
-	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", CVAR_ARCHIVE );
+	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", CVAR_ARCHIVE_ND );
 
-	in_joystickThreshold = Cvar_Get( "joy_threshold", "0.15", CVAR_ARCHIVE );
+	in_joystickThreshold = Cvar_Get( "joy_threshold", "0.15", CVAR_ARCHIVE_ND );
 
 	stick = SDL_JoystickOpen( in_joystickNo->integer );
 
@@ -593,17 +620,25 @@ void IN_Init( void *windowData )
 	Com_DPrintf( "\n------- Input Initialization -------\n" );
 
 	// joystick variables
-	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_ARCHIVE );
+	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_ARCHIVE_ND );
 
-	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE|CVAR_LATCH );
+	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE_ND|CVAR_LATCH );
 
 	// mouse variables
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
-	in_nograb = Cvar_Get( "in_nograb", "0", CVAR_ARCHIVE );
+	in_nograb = Cvar_Get( "in_nograb", "0", CVAR_ARCHIVE_ND );
 
 	SDL_StartTextInput( );
 
 	mouseAvailable = (qboolean)( in_mouse->value != 0 );
+	if ( in_mouse->integer == 2 ) {
+		Com_DPrintf( "Not using raw mouse input\n" );
+		SDL_SetHint( "SDL_MOUSE_RELATIVE_MODE_WARP", "1" );
+	}
+	else {
+		Com_DPrintf( "Using raw mouse input\n" );
+		SDL_SetHint( "SDL_MOUSE_RELATIVE_MODE_WARP", "0" );
+	}
 	IN_DeactivateMouse( );
 
 	int appState = SDL_GetWindowFlags( SDL_window );
@@ -798,8 +833,8 @@ static void IN_ProcessEvents( void )
 
 				if ( key == A_BACKSPACE )
 					Sys_QueEvent( 0, SE_CHAR, CTRL('h'), qfalse, 0, NULL);
-				else if ( kg.keys[A_CTRL].down && key >= 'a' && key <= 'z' )
-					Sys_QueEvent( 0, SE_CHAR, CTRL(key), qfalse, 0, NULL );
+				else if ( kg.keys[A_CTRL].down && key >= A_CAP_A && key <= A_CAP_Z )
+					Sys_QueEvent( 0, SE_CHAR, CTRL(tolower(key)), qfalse, 0, NULL );
 
 				lastKeyDown = key;
 				break;
@@ -823,7 +858,7 @@ static void IN_ProcessEvents( void )
 						uint32_t utf32 = ConvertUTF8ToUTF32( c, &c );
 						if( utf32 != 0 )
 						{
-							if( IN_IsConsoleKey( A_NULL, utf32 ) )
+							if( IN_IsConsoleKey( A_NULL, utf32 ) && !cl_consoleUseScanCode->integer )
 							{
 								Sys_QueEvent( 0, SE_KEY, A_CONSOLE, qtrue, 0, NULL );
 								Sys_QueEvent( 0, SE_KEY, A_CONSOLE, qfalse, 0, NULL );
@@ -1128,7 +1163,7 @@ void IN_Frame (void) {
 		// Console is down in windowed mode
 		IN_DeactivateMouse( );
 	}
-	else if( !cls.glconfig.isFullscreen && loading )
+	else if( !cls.glconfig.isFullscreen && loading && !cls.cursorActive )
 	{
 		// Loading in windowed mode
 		IN_DeactivateMouse( );

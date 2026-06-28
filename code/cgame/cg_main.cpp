@@ -28,6 +28,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "g_local.h"
 
 #include "../qcommon/sstring.h"
+#include "qcommon/ojk_saved_game_helper.h"
+
 //NOTENOTE: Be sure to change the mirrored code in g_shared.h
 typedef	std::map< sstring_t, unsigned char  >	namePrecache_m;
 extern namePrecache_m	*as_preCacheMap;
@@ -99,7 +101,7 @@ This is the only way control passes into the cgame module.
 This must be the very first function compiled into the .q3vm file
 ================
 */
-extern "C" Q_EXPORT intptr_t QDECL vmMain( intptr_t command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6, intptr_t arg7  ) {
+extern "C" Q_EXPORT intptr_t QDECL vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6, intptr_t arg7  ) {
 	centity_t		*cent;
 
 	switch ( command ) {
@@ -337,6 +339,8 @@ vmCvar_t	cg_speedTrail;
 vmCvar_t	cg_fovViewmodel;
 vmCvar_t	cg_fovViewmodelAdjust;
 
+vmCvar_t	cg_scaleVehicleSensitivity;
+
 typedef struct {
 	vmCvar_t	*vmCvar;
 	const char	*cvarName;
@@ -453,6 +457,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_speedTrail, "cg_speedTrail", "1", CVAR_ARCHIVE },
 	{ &cg_fovViewmodel, "cg_fovViewmodel", "0", CVAR_ARCHIVE },
 	{ &cg_fovViewmodelAdjust, "cg_fovViewmodelAdjust", "1", CVAR_ARCHIVE },
+
+	{ &cg_scaleVehicleSensitivity, "cg_scaleVehicleSensitivity", "1", CVAR_ARCHIVE },
 };
 
 static const size_t cvarTableSize = ARRAY_LEN( cvarTable );
@@ -564,7 +570,7 @@ void CG_Printf( const char *msg, ... ) {
 	cgi_Printf( text );
 }
 
-void CG_Error( const char *msg, ... ) {
+NORETURN void CG_Error( const char *msg, ... ) {
 	va_list		argptr;
 	char		text[1024];
 
@@ -994,7 +1000,7 @@ void CG_RegisterClientRenderInfo(clientInfo_t *ci, renderInfo_t *ri)
 	char			torsoSkinName[MAX_QPATH];
 	char			legsSkinName[MAX_QPATH];
 
-	if(!ri->legsModelName || !ri->legsModelName[0])
+	if(!ri->legsModelName[0])
 	{//Must have at LEAST a legs model
 		return;
 	}
@@ -1014,7 +1020,7 @@ void CG_RegisterClientRenderInfo(clientInfo_t *ci, renderInfo_t *ri)
 		*slash = 0;
 	}
 
-	if(ri->torsoModelName && ri->torsoModelName[0])
+	if(ri->torsoModelName[0])
 	{
 		Q_strncpyz( torsoModelName, ri->torsoModelName, sizeof( torsoModelName ) );
 		//Torso skin
@@ -1037,7 +1043,7 @@ void CG_RegisterClientRenderInfo(clientInfo_t *ci, renderInfo_t *ri)
 	}
 
 	//Head
-	if(ri->headModelName && ri->headModelName[0])
+	if(ri->headModelName[0])
 	{
 		Q_strncpyz( headModelName, ri->headModelName, sizeof( headModelName ) );
 		//Head skin
@@ -1607,7 +1613,7 @@ Ghoul2 Insert End
 
 	for (i=0 ; i < ENTITYNUM_WORLD ; i++)
 	{
-		if(&g_entities[i])
+		if(g_entities[i].inuse)
 		{
 			if(g_entities[i].client)
 			{
@@ -1795,7 +1801,7 @@ void CG_StartMusic( qboolean bForceStart ) {
 	Q_strncpyz( parm2, COM_Parse( &s ), sizeof( parm2 ) );
 	COM_EndParseSession();
 
-	cgi_S_StartBackgroundTrack( parm1, parm2, !bForceStart );
+	cgi_S_StartBackgroundTrack( parm1, parm2, (qboolean)!bForceStart );
 }
 
 /*
@@ -1899,16 +1905,33 @@ static void CG_GameStateReceived( void ) {
 
 }
 
-void CG_WriteTheEvilCGHackStuff(void)
+void CG_WriteTheEvilCGHackStuff()
 {
-	gi.AppendToSaveGame(INT_ID('F','P','S','L'), &cg.forcepowerSelect, sizeof(cg.forcepowerSelect));
-	gi.AppendToSaveGame(INT_ID('I','V','S','L'), &cg.inventorySelect,  sizeof(cg.inventorySelect));
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
 
+	saved_game.write_chunk<int32_t>(
+		INT_ID('F', 'P', 'S', 'L'),
+		::cg.forcepowerSelect);
+
+	saved_game.write_chunk<int32_t>(
+		INT_ID('I', 'V', 'S', 'L'),
+		::cg.inventorySelect);
 }
-void CG_ReadTheEvilCGHackStuff(void)
+
+void CG_ReadTheEvilCGHackStuff()
 {
-	gi.ReadFromSaveGame(INT_ID('F','P','S','L'), (void *)&gi_cg_forcepowerSelect, sizeof(gi_cg_forcepowerSelect), NULL);
-	gi.ReadFromSaveGame(INT_ID('I','V','S','L'), (void *)&gi_cg_inventorySelect,  sizeof(gi_cg_inventorySelect), NULL);
+	ojk::SavedGameHelper saved_game(
+		::gi.saved_game);
+
+	saved_game.read_chunk<int32_t>(
+		INT_ID('F', 'P', 'S', 'L'),
+		::gi_cg_forcepowerSelect);
+
+	saved_game.read_chunk<int32_t>(
+		INT_ID('I', 'V', 'S', 'L'),
+		::gi_cg_inventorySelect);
+
 	gbUseTheseValuesFromLoadSave = qtrue;
 }
 
@@ -4330,10 +4353,47 @@ void CG_DrawDataPadForceSelect( void )
 		const float	textScale = 1.0f;
 
 		CG_DisplayBoxedText(textboxXPos,textboxYPos,textboxWidth,textboxHeight,va("%s%s",text,text2),
-													4,
+													CG_MagicFontToReal(4),
 													textScale,
 													colorTable[CT_WHITE]
 													);
+	}
+}
+
+int CG_MagicFontToReal( int menuFontIndex )
+{
+	// As the engine supports multiple renderers now we can no longer assume the
+	// order of fontindex values to be the same as it was on vanilla jasp with
+	// vanilla assets. Sadly the code uses magic numbers in various places that
+	// no longer match. This function tries to map these magic numbers to the
+	// fonts the would refer to on vanilla jasp with vanilla assets.
+
+	static int fonthandle_aurabesh;
+	static int fonthandle_ergoec;
+	static int fonthandle_anewhope;
+	static int fonthandle_arialnb;
+
+	static qboolean fontsRegistered = qfalse;
+
+	if ( !fontsRegistered )
+	{ // Only try registering the fonts once
+		fonthandle_aurabesh = cgi_R_RegisterFont( "aurabesh" );
+		fonthandle_ergoec   = cgi_R_RegisterFont( "ergoec" );
+		fonthandle_anewhope = cgi_R_RegisterFont( "anewhope" );
+		fonthandle_arialnb  = cgi_R_RegisterFont( "arialnb" );
+
+		fontsRegistered = qtrue;
+	}
+
+	// Default fonts from a clean installation
+	switch ( menuFontIndex ) {
+		case 1: return fonthandle_aurabesh;
+		case 2: return fonthandle_ergoec;
+		case 3: return fonthandle_anewhope;
+		case 4: return fonthandle_arialnb;
+
+		default:
+			return cgs.media.qhFontMedium;
 	}
 }
 

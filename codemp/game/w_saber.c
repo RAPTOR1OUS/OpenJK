@@ -109,6 +109,16 @@ qboolean G_CanBeEnemy( gentity_t *self, gentity_t *enemy )
 	if ( !self->inuse || !enemy->inuse || !self->client || !enemy->client )
 		return qfalse;
 
+	if (self->client->ps.duelInProgress && self->client->ps.duelIndex != enemy->s.number)
+	{ //dueling but not with this person
+		return qfalse;
+	}
+
+	if (enemy->client->ps.duelInProgress && enemy->client->ps.duelIndex != self->s.number)
+	{ //other guy dueling but not with me
+		return qfalse;
+	}
+
 	if (level.gametype < GT_TEAM)
 		return qtrue;
 
@@ -5238,15 +5248,6 @@ blockStuff:
 	return didHit;
 }
 
-QINLINE int VectorCompare2( const vec3_t v1, const vec3_t v2 ) {
-	if ( v1[0] > v2[0]+0.0001f || v1[0] < v2[0]-0.0001f
-		|| v1[1] > v2[1]+0.0001f || v1[1] < v2[1]-0.0001f
-		|| v1[2] > v2[2]+0.0001f || v1[2] < v2[2]-0.0001f ) {
-		return 0;
-	}
-	return 1;
-}
-
 #define MAX_SABER_SWING_INC 0.33f
 void G_SPSaberDamageTraceLerped( gentity_t *self, int saberNum, int bladeNum, vec3_t baseNew, vec3_t endNew, int clipmask )
 {
@@ -6614,7 +6615,7 @@ void WP_SaberAddG2Model( gentity_t *saberent, const char *saberModel, qhandle_t 
 	}
 	else
 	{
-		saberent->s.modelindex = G_ModelIndex( "models/weapons2/saber/saber_w.glm" );
+		saberent->s.modelindex = G_ModelIndex( DEFAULT_SABER_MODEL );
 	}
 	//FIXME: use customSkin?
 	trap->G2API_InitGhoul2Model( &saberent->ghoul2, saberModel, saberent->s.modelindex, saberSkin, 0, 0, 0 );
@@ -6754,7 +6755,8 @@ qboolean saberCheckKnockdown_DuelLoss(gentity_t *saberent, gentity_t *saberOwner
 	if ( other && other->client )
 	{
 		disarmChance += other->client->saber[0].disarmBonus;
-		if ( other->client->saber[1].model[0]
+		if ( g_fixSaberDisarmBonus.integer
+			&& other->client->saber[1].model[0]
 			&& !other->client->ps.saberHolstered )
 		{
 			disarmChance += other->client->saber[1].disarmBonus;
@@ -6838,7 +6840,8 @@ qboolean saberCheckKnockdown_BrokenParry(gentity_t *saberent, gentity_t *saberOw
 		if ( other && other->client )
 		{
 			disarmChance += other->client->saber[0].disarmBonus;
-			if ( other->client->saber[1].model[0]
+			if ( g_fixSaberDisarmBonus.integer
+				&& other->client->saber[1].model[0]
 				&& !other->client->ps.saberHolstered )
 			{
 				disarmChance += other->client->saber[1].disarmBonus;

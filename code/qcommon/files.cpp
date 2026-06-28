@@ -35,7 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #ifndef FINAL_BUILD
 #include "../client/client.h"
 #endif
-#include "minizip/unzip.h"
+#include <minizip/unzip.h>
 
 // for rmdir
 #if defined (_MSC_VER)
@@ -293,6 +293,12 @@ FS_Initialized
 
 qboolean FS_Initialized( void ) {
 	return (qboolean)(fs_searchpaths != NULL);
+}
+
+static void FS_AssertInitialised( void ) {
+	if ( !fs_searchpaths ) {
+		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
+	}
 }
 
 /*
@@ -624,7 +630,7 @@ void FS_HomeRemove( const char *homePath ) {
 			fs_gamedir, homePath ) );
 }
 
-// The following functions with "UserGen" in them were added for savegame handling, 
+// The following functions with "UserGen" in them were added for savegame handling,
 //	since outside functions aren't supposed to know about full paths/dirs
 
 // "filename" is local to the current gamedir (eg "saves/blah.sav")
@@ -640,9 +646,7 @@ void FS_DeleteUserGenFile( const char *filename ) {
 qboolean FS_MoveUserGenFile( const char *filename_src, const char *filename_dst ) {
 	char			*from_ospath, *to_ospath;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	// don't let sound stutter
 	S_ClearSoundBuffer();
@@ -657,7 +661,7 @@ qboolean FS_MoveUserGenFile( const char *filename_src, const char *filename_dst 
 	FS_CheckFilenameIsMutable( to_ospath, __func__ );
 
 	remove( to_ospath );
-	return !rename( from_ospath, to_ospath );
+	return (qboolean)!rename( from_ospath, to_ospath );
 }
 
 /*
@@ -774,9 +778,7 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename ) {
 	char *ospath;
 	fileHandle_t	f;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	ospath = FS_BuildOSPath( fs_homepath->string, filename, "" );
 	ospath[strlen(ospath)-1] = '\0';
@@ -817,9 +819,7 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 	char *ospath;
 	fileHandle_t	f = 0;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
@@ -900,9 +900,7 @@ FS_SV_Rename
 void FS_SV_Rename( const char *from, const char *to, qboolean safe ) {
 	char			*from_ospath, *to_ospath;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	// don't let sound stutter
 	S_ClearSoundBuffer();
@@ -936,9 +934,7 @@ FS_Rename
 void FS_Rename( const char *from, const char *to ) {
 	char			*from_ospath, *to_ospath;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	// don't let sound stutter
 	S_ClearSoundBuffer();
@@ -979,9 +975,7 @@ There are three cases handled:
 ===========
 */
 void FS_FCloseFile( fileHandle_t f ) {
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if (fsh[f].zipFile == qtrue) {
 		unzCloseCurrentFile( fsh[f].handleFiles.file.z );
@@ -1009,9 +1003,7 @@ fileHandle_t FS_FOpenFileWrite( const char *filename, qboolean safe ) {
 	char			*ospath;
 	fileHandle_t	f;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
@@ -1054,9 +1046,7 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	char			*ospath;
 	fileHandle_t	f;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
@@ -1268,12 +1258,11 @@ long FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean unique
 	long			hash;
 	//unz_s			*zfi;
 	//void			*temp;
+	bool			isUserConfig = false;
 
 	hash = 0;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( file == NULL ) {
 		Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'file' parameter passed\n" );
@@ -1303,6 +1292,8 @@ long FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean unique
 		return -1;
 	}
 
+	isUserConfig = !Q_stricmp( filename, "autoexec_sp.cfg" ) || !Q_stricmp( filename, Q3CONFIG_NAME );
+
 	//
 	// search through the path, one element at a time
 	//
@@ -1328,6 +1319,11 @@ long FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean unique
 			}
 			// is the element a pak file?
 			if ( search->pack && search->pack->hashTable[hash] ) {
+				// autoexec_sp.cfg and openjk_sp.cfg can only be loaded outside of pk3 files.
+				if ( isUserConfig ) {
+					continue;
+				}
+
 				// look through all the pak file elements
 				pak = search->pack;
 				pakFile = pak->hashTable[hash];
@@ -1490,9 +1486,7 @@ int FS_Read( void *buffer, int len, fileHandle_t f ) {
 	byte	*buf;
 	int		tries;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !f ) {
 		return 0;
@@ -1544,9 +1538,7 @@ int FS_Write( const void *buffer, int len, fileHandle_t h ) {
 	int		tries;
 	FILE	*f;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !h ) {
 		return 0;
@@ -1605,10 +1597,7 @@ FS_Seek
 int FS_Seek( fileHandle_t f, long offset, int origin ) {
 	int		_origin;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-		return -1;
-	}
+	FS_AssertInitialised();
 
 	if (fsh[f].zipFile == qtrue) {
 		//FIXME: this is really, really crappy
@@ -1706,9 +1695,7 @@ int	FS_FileIsInPAK(const char *filename ) {
 	fileInPack_t	*pakFile;
 	long			hash = 0;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !filename ) {
 		Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
@@ -1765,9 +1752,7 @@ long FS_ReadFile( const char *qpath, void **buffer ) {
 	byte*			buf;
 	long				len;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !qpath || !qpath[0] ) {
 		Com_Error( ERR_FATAL, "FS_ReadFile with empty name\n" );
@@ -1799,7 +1784,7 @@ long FS_ReadFile( const char *qpath, void **buffer ) {
 	*buffer = buf;
 
 	Z_Label(buf, qpath);
-	
+
 	// PRECACE CHECKER!
 #ifndef FINAL_BUILD
 	if (com_sv_running && com_sv_running->integer && cls.state >= CA_ACTIVE) {	//com_cl_running
@@ -1823,9 +1808,7 @@ FS_FreeFile
 =============
 */
 void FS_FreeFile( void *buffer ) {
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 	if ( !buffer ) {
 		Com_Error( ERR_FATAL, "FS_FreeFile( NULL )" );
 	}
@@ -1843,9 +1826,7 @@ Filename are reletive to the quake search path
 void FS_WriteFile( const char *qpath, const void *buffer, int size ) {
 	fileHandle_t f;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !qpath || !buffer ) {
 		Com_Error( ERR_FATAL, "FS_WriteFile: NULL parameter" );
@@ -2067,9 +2048,7 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, char *filt
 	fileInPack_t	*buildBuffer;
 	char			zpath[MAX_ZPATH];
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !path ) {
 		*numfiles = 0;
@@ -2187,9 +2166,7 @@ void FS_FreeFileList( char **fileList ) {
 	//rwwRMG - changed to fileList to not conflict with list type
 	int		i;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
-	}
+	FS_AssertInitialised();
 
 	if ( !fileList ) {
 		return;
@@ -2708,6 +2685,29 @@ void FS_Which_f( void ) {
 	Com_Printf( "File not found: \"%s\"\n", filename );
 }
 
+/*
+============
+FS_Restart_f
+============
+*/
+static qboolean FS_CanRestartInPlace( void ) {
+	int i;
+	for ( i = 1; i < MAX_FILE_HANDLES; i++ ) {
+		// If we have an active filehandle for a module that references a zip file we cannot restart.
+		if ( fsh[i].fileSize ) {
+			if ( fsh[i].zipFile ) return qfalse;
+		}
+	}
+	return qtrue;
+}
+static void FS_Restart_f( void ) {
+	if ( !FS_CanRestartInPlace() ) {
+		Com_Printf( "^3WARNING: Cannot restart file system due to active file handles for pk3 files inside of modules.\n" );
+		return;
+	}
+	FS_Restart( qtrue );
+}
+
 //===========================================================================
 
 static int QDECL paksort( const void *a, const void *b ) {
@@ -2727,7 +2727,6 @@ Sets fs_gamedir, adds the directory to the head of the path,
 then loads the zip headers
 ================
 */
-#define	MAX_PAKFILES	1024
 static void FS_AddGameDirectory( const char *path, const char *dir ) {
 	searchpath_t	*sp;
 	int				i;
@@ -2737,7 +2736,6 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 	char			curpath[MAX_OSPATH + 1], *pakfile;
 	int				numfiles;
 	char			**pakfiles;
-	char			*sorted[MAX_PAKFILES];
 
 	// this fixes the case where fs_basepath is the same as fs_cdpath
 	// which happens on full installs
@@ -2771,20 +2769,13 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 
 	pakfiles = Sys_ListFiles( curpath, ".pk3", NULL, &numfiles, qfalse );
 
-	// sort them so that later alphabetic matches override
-	// earlier ones.  This makes pak1.pk3 override pak0.pk3
-	if ( numfiles > MAX_PAKFILES ) {
-		numfiles = MAX_PAKFILES;
-	}
-	for ( i = 0 ; i < numfiles ; i++ ) {
-		sorted[i] = pakfiles[i];
+	if ( numfiles > 1 ) {
+		qsort( pakfiles, numfiles, sizeof(char*), paksort );
 	}
 
-	qsort( sorted, numfiles, sizeof(char*), paksort );
-
 	for ( i = 0 ; i < numfiles ; i++ ) {
-		pakfile = FS_BuildOSPath( path, dir, sorted[i] );
-		if ( ( pak = FS_LoadZipFile( pakfile, sorted[i] ) ) == 0 )
+		pakfile = FS_BuildOSPath( path, dir, pakfiles[i] );
+		if ( ( pak = FS_LoadZipFile( pakfile, pakfiles[i] ) ) == 0 )
 			continue;
 		Q_strncpyz(pak->pakPathname, curpath, sizeof(pak->pakPathname));
 		// store the game name for downloading
@@ -2842,13 +2833,14 @@ FS_Shutdown
 Frees all resources and closes all files
 ================
 */
-void FS_Shutdown( void ) {
+void FS_Shutdown( qboolean keepModuleFiles ) {
 	searchpath_t	*p, *next;
 	int	i;
 
 	for(i = 0; i < MAX_FILE_HANDLES; i++) {
 		if (fsh[i].fileSize) {
-			FS_FCloseFile(i);
+			if ( !keepModuleFiles ) FS_FCloseFile(i);
+			else if ( fsh[i].zipFile ) Com_Error(ERR_FATAL, "FS_Shutdown: tried to keep module files when at least one module file is inside of a pak");
 		}
 	}
 
@@ -2873,6 +2865,7 @@ void FS_Shutdown( void ) {
 	Cmd_RemoveCommand( "fdir" );
 	Cmd_RemoveCommand( "touchFile" );
 	Cmd_RemoveCommand( "which" );
+	Cmd_RemoveCommand( "fs_restart" );
 }
 
 /*
@@ -2958,6 +2951,7 @@ void FS_Startup( const char *gameName ) {
 	Cmd_AddCommand ("fdir", FS_NewDir_f );
 	Cmd_AddCommand ("touchFile", FS_TouchFile_f );
 	Cmd_AddCommand ("which", FS_Which_f );
+	Cmd_AddCommand ("fs_restart", FS_Restart_f );
 
 	// print the current search paths
 	FS_Path_f();
@@ -3021,10 +3015,10 @@ void FS_InitFilesystem( void ) {
 FS_Restart
 ================
 */
-void FS_Restart( void ) {
+void FS_Restart( qboolean inPlace ) {
 
 	// free anything we currently have loaded
-	FS_Shutdown();
+	FS_Shutdown( inPlace );
 
 	// try to start up normally
 	FS_Startup( BASEGAME );

@@ -3121,7 +3121,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME("EV_MUTE_SOUND");
 		if (cg_entities[es->trickedentindex2].currentState.eFlags & EF_SOUNDTRACKER)
 		{
-			cg_entities[es->trickedentindex2].currentState.eFlags -= EF_SOUNDTRACKER;
+			cg_entities[es->trickedentindex2].currentState.eFlags &= ~EF_SOUNDTRACKER;
 		}
 		trap->S_MuteSound(es->trickedentindex2, es->trickedentindex);
 		CG_S_StopLoopingSound(es->trickedentindex2, -1);
@@ -3341,7 +3341,6 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	//
 	// powerup events
 	//
-#ifdef BASE_COMPAT
 	case EV_POWERUP_QUAD:
 		DEBUGNAME("EV_POWERUP_QUAD");
 		if ( es->number == cg.snap->ps.clientNum ) {
@@ -3358,7 +3357,6 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 		//trap->S_StartSound (NULL, es->number, CHAN_ITEM, cgs.media.protectSound );
 		break;
-#endif // BASE_COMPAT
 
 	case EV_FORCE_DRAINED:
 		DEBUGNAME("EV_FORCE_DRAINED");

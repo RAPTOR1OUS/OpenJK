@@ -1,17 +1,17 @@
 #============================================================================
-# Copyright (C) 2013 - 2015, OpenJK contributors
-# 
+# Copyright (C) 2013 - 2018, OpenJK contributors
+#
 # This file is part of the OpenJK source code.
-# 
+#
 # OpenJK is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 #============================================================================
@@ -21,9 +21,15 @@ if(NOT InOpenJK)
 	message(FATAL_ERROR "Use the top-level cmake script!")
 endif(NOT InOpenJK)
 
-set(JK2SPGameDefines ${SharedDefines} "JK2_MODE")
+set(JK2SPGameDefines ${SharedDefines} "JK2_MODE" "SP_GAME")
 
-set(JK2SPGameIncludeDirectories "${JK2SPDir}/game")
+set(JK2SPGameIncludeDirectories
+	"${JK2SPDir}"
+	"${JK2SPDir}/game"
+	"${SharedDir}"
+	"${GSLIncludeDirectory}"
+	"${CMAKE_BINARY_DIR}/shared"
+	)
 if(WIN32)
 	set(JK2SPGameLibraries "winmm")
 endif(WIN32)
@@ -121,7 +127,7 @@ set(JK2SPGameGameFiles
 	"${JK2SPDir}/game/wp_stun_baton.cpp"
 	"${JK2SPDir}/game/wp_thermal.cpp"
 	"${JK2SPDir}/game/wp_trip_mine.cpp"
-	"${JK2SPDir}/game/Q3_Interface.h"	
+	"${JK2SPDir}/game/Q3_Interface.h"
 	"${JK2SPDir}/game/Q3_Registers.h"
 	"${JK2SPDir}/game/ai.h"
 	"${JK2SPDir}/game/anims.h"
@@ -132,7 +138,6 @@ set(JK2SPGameGameFiles
 	"${JK2SPDir}/game/bset.h"
 	"${JK2SPDir}/game/bstate.h"
 	"${JK2SPDir}/game/channels.h"
-	"${JK2SPDir}/game/characters.h"
 	"${JK2SPDir}/game/dmstates.h"
 	"${JK2SPDir}/game/events.h"
 	"${JK2SPDir}/game/fields.h"
@@ -224,14 +229,27 @@ set(JK2SPGameFiles ${JK2SPGameFiles} ${JK2SPGameUIFiles})
 set(JK2SPGameCommonFiles
 	#We only have JKA qcommon files now.
 	"${SPDir}/qcommon/tri_coll_test.cpp"
-	"${SPDir}/qcommon/q_math.cpp"
 	"${SPDir}/qcommon/q_shared.cpp"
 	"${SPDir}/qcommon/q_shared.h"
-	"${SPDir}/qcommon/q_platform.h"
 	"${SPDir}/qcommon/strippublic.h"
+	"${SPDir}/qcommon/ojk_i_saved_game.h"
+	"${SPDir}/qcommon/ojk_saved_game_class_archivers.h"
+	"${SPDir}/qcommon/ojk_saved_game_helper.h"
+	"${SPDir}/qcommon/ojk_saved_game_helper_fwd.h"
+	"${SPDir}/qcommon/ojk_scope_guard.h"
+	${SharedCommonFiles}
 	)
 source_group("common" FILES ${JK2SPGameCommonFiles})
 set(JK2SPGameFiles ${JK2SPGameFiles} ${JK2SPGameCommonFiles})
+
+set(JK2SPGameCommonSafeFiles
+	${SharedCommonSafeFiles}
+	"${SharedDir}/qcommon/safe/files.h"
+	"${SharedDir}/qcommon/safe/files.cpp"
+	"${JK2SPDir}/qcommon/safe/memory.h"
+	)
+source_group("common/safe" FILES ${JK2SPGameCommonSafeFiles})
+set(JK2SPGameFiles ${JK2SPGameFiles} ${JK2SPGameCommonSafeFiles})
 
 set(JK2SPGameIcarusFiles
 	"${JK2SPDir}/icarus/BlockStream.cpp"
@@ -282,7 +300,12 @@ else(WIN32)
 		install(TARGETS ${JK2SPGame} LIBRARY DESTINATION "${JK2InstallDir}/OpenJK")
 	endif(MakeApplicationBundles AND BuildJK2SPEngine)
 endif(WIN32)
+
 set_target_properties(${JK2SPGame} PROPERTIES COMPILE_DEFINITIONS "${JK2SPGameDefines}")
+
+# Hide symbols not explicitly marked public.
+set_property(TARGET ${JK2SPGame} APPEND PROPERTY COMPILE_OPTIONS ${OPENJK_VISIBILITY_FLAGS})
+
 set_target_properties(${JK2SPGame} PROPERTIES INCLUDE_DIRECTORIES "${JK2SPGameIncludeDirectories}")
 set_target_properties(${JK2SPGame} PROPERTIES PROJECT_LABEL "JK2 SP Game Library")
 # no libraries used

@@ -320,6 +320,22 @@ void *Z_Malloc(int iSize, memtag_t eTag, qboolean bZeroit /* = qfalse */, int iU
 	return pvReturnMem;
 }
 
+// Special wrapper around Z_Malloc for better separation between the main engine
+// code and the bundled minizip library.
+
+extern "C" Q_EXPORT void* openjk_minizip_malloc(int size);
+extern "C" Q_EXPORT void openjk_minizip_free(void* to_free);
+
+void* openjk_minizip_malloc(int size)
+{
+    return Z_Malloc(size, TAG_MINIZIP, qfalse, 0);
+}
+
+void openjk_minizip_free(void *to_free)
+{
+    Z_Free(to_free);
+}
+
 // used during model cacheing to save an extra malloc, lets us morph the disk-load buffer then
 //	just not fs_freefile() it afterwards.
 //
@@ -600,8 +616,8 @@ void Com_InitZoneMemoryVars( void ) {
 	com_validateZone = Cvar_Get("com_validateZone", "0", 0);
 //#endif
 
-	Cmd_AddCommand("zone_stats", Z_Stats_f);
-	Cmd_AddCommand("zone_details", Z_Details_f);
+	Cmd_AddCommand("zone_stats", Z_Stats_f, "Prints out zone memory stats" );
+	Cmd_AddCommand("zone_details", Z_Details_f, "Prints out full detailed zone memory info" );
 
 #ifdef _DEBUG
 	Cmd_AddCommand("zone_memrecovertest", Z_MemRecoverTest_f);
@@ -650,7 +666,7 @@ Touch all known used data to make sure it is paged in
 void Com_TouchMemory( void ) {
 //	int		start, end;
 	int		i, j;
-	int		sum;
+	unsigned int		sum;
 
 //	start = Sys_Milliseconds();
 	Z_Validate();
@@ -663,7 +679,7 @@ void Com_TouchMemory( void ) {
 		byte *pMem = (byte *) &pMemory[1];
 		j = pMemory->iSize >> 2;
 		for (i=0; i<j; i+=64){
-			sum += ((int*)pMem)[i];
+			sum += ((unsigned int*)pMem)[i];
 		}
 
 		pMemory = pMemory->pNext;
